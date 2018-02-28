@@ -507,6 +507,18 @@ class RootGenerator(object):
                 else:
                     env_vars_help += " -e {0}".format(env_var_name)
         return env_vars_help
+
+    def get_user_help_env_list(self):            
+        env_vars_help = ""
+        for env_var_name, env_var in self.env_variables.iteritems():
+            if env_var.publish:
+                if env_var.value:
+                    env_vars_help += " {0}={1}".format(env_var_name, env_var.value)
+                else:
+                    env_vars_help += " {0}".format(env_var_name)
+        if env_vars_help:
+            env_vars_help = "  Published env vars:" + env_vars_help + "\n"
+        return env_vars_help
     
     def get_user_help_commands(self):
         s_out = ""
@@ -549,7 +561,8 @@ class RootGenerator(object):
         for help in self.container_config.get("help", []):
             s_out += "  {0}\n".format(help)
         s_out += self.get_user_help_commands()
-        s_out += self.get_user_help_shells() 
+        s_out += self.get_user_help_shells()
+        s_out += self.get_user_help_env_list() 
         s_out += self.get_user_help_ports()
         s_out += self.get_user_help_examples()
         
