@@ -497,20 +497,8 @@ class RootGenerator(object):
         for example in exmaples:
             s_out += "  {0}\n".format(example)
         return s_out
-            
-    def get_user_help_commands(self):
-        s_out = ""
-        volumes_help = ""
-        for (_, dst, src_abs_path) in self.volumes:
-            volumes_help += " \\\n  --volume {0}:{1} ".format(src_abs_path, dst)
-        if volumes_help:
-            volumes_help += " \\\n "
-        ports_help = ""
-        for (port, protocol) in self.ports:
-            ports_help += " -p {0}:{0}/{1}".format(port, protocol)
-        if ports_help:
-            ports_help += " \\\n "
 
+    def get_user_help_env(self):            
         env_vars_help = ""
         for env_var_name, env_var in self.env_variables.iteritems():
             if env_var.publish:
@@ -518,7 +506,24 @@ class RootGenerator(object):
                     env_vars_help += " -e \"{0}={1}\"".format(env_var_name, env_var.value)
                 else:
                     env_vars_help += " -e {0}".format(env_var_name)
+        return env_vars_help
     
+    def get_user_help_commands(self):
+        s_out = ""
+        volumes_help = ""
+        for (_, dst, src_abs_path) in self.volumes:
+            volumes_help += " \\\n  --volume {0}:{1} ".format(src_abs_path, dst)
+        if volumes_help:
+            volumes_help += " \\\n "
+
+        ports_help = ""
+        for (port, protocol) in self.ports:
+            ports_help += " -p {0}:{0}/{1}".format(port, protocol)
+        if ports_help:
+            ports_help += " \\\n "
+            
+        env_vars_help = self.get_user_help_env()
+
         dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.container_name))
         s_out += "  # Build the container. See https://docs.docker.com/engine/reference/commandline/build\n"
         s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.container_name, replace_home(dockerfile_path))
@@ -562,10 +567,11 @@ class RootGenerator(object):
         volumes_help = ""
         for volume in self.volumes:
             volumes_help += " --volume {0}:{1}".format(volume.src, volume.dst)
+        env_vars_help = self.get_user_help_env()
 
         dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.container_name))
         s_out += "\n# sudo docker build --tag {0}:latest --file {1}  .".format(self.container_name, dockerfile_path)
-        s_out += "\n# sudo docker run --name {0} --tty --interactive  {1} {0}:latest".format(self.container_name, volumes_help)
+        s_out += "\n# sudo docker run --name {0} --tty --interactive  {1}{2} {0}:latest".format(self.container_name, volumes_help, env_vars_help)
         s_out += "\n# sudo docker start --interactive {0}".format(self.container_name)
         exmaples = container_config.get("examples", [])
         if exmaples:
