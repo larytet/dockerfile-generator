@@ -1,0 +1,42 @@
+macros:
+ get_release:
+  - cat /etc/*release
+  - gcc --version
+
+ build_essential_centos:
+  - gcc 
+  - gcc-c++ 
+  - make
+ 
+ make_dir:
+  - mkdir -p /etc/docker
+ 
+ environment_vars:
+   - SHARED_FOLDER /etc/docker # I need an env variable referencing a persistent folder 
+
+containers:
+
+ centos7:
+    base: centos:centos7
+    packager: rpm
+    install:
+      - $build_essential_centos 
+      - rpm-build
+    run:
+      - $get_release
+    env:
+      - $environment_vars
+
+ ubuntu.16.04:
+    base: ubuntu:16.04
+    packager: deb
+    install:
+      - build-essential
+    run:
+      - $get_release
+    env:
+      - $environment_vars
+    expose:
+      - 8080/TCP
+
+
