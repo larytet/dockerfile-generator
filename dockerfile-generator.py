@@ -517,7 +517,7 @@ class RootGenerator(object):
                 else:
                     env_vars_help += " {0}".format(env_var_name)
         if env_vars_help:
-            env_vars_help = "  Published env vars:" + env_vars_help + "\n"
+            env_vars_help = "  Flagged env vars:" + env_vars_help + "\n"
         return env_vars_help
     
     def get_user_help_commands(self):
