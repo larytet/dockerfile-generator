@@ -378,6 +378,8 @@ class RootGenerator(object):
             env_var_definition =  environment_variable["definition"]
             env_var_help = environment_variable.get("help", "")
             env_var_publish = environment_variable.get("publish", False)
+            if env_var_help:
+                s_out += "\n# {0}".format(env_var_help)
             s_out += "\nENV {0}".format(env_var_definition)
             name, value = split_file_paths(env_var_definition)
             self.env_variables[name] = EnvironmentVariable(name, value, env_var_help, env_var_publish)
