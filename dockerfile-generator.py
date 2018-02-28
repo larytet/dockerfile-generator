@@ -510,12 +510,20 @@ class RootGenerator(object):
             ports_help += " -p {0}:{0}/{1}".format(port, protocol)
         if ports_help:
             ports_help += " \\\n "
+
+        env_vars_help = ""
+        for env_var_name, env_var in self.env_variables.iteritems():
+            if env_var.publish:
+                if env_var.value:
+                    env_vars_help += " -e \"{0}={1}\"".format(env_var_name, env_var.value)
+                else:
+                    env_vars_help += " -e {0}".format(env_var_name)
     
         dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.container_name))
         s_out += "  # Build the container. See https://docs.docker.com/engine/reference/commandline/build\n"
         s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.container_name, replace_home(dockerfile_path))
         s_out += "  # Run the previously built container. See https://docs.docker.com/engine/reference/commandline/run\n"
-        s_out += "  sudo docker run --name {0} --network='host' --tty --interactive{1}{2} {0}:latest\n".format(self.container_name, volumes_help, ports_help)
+        s_out += "  sudo docker run --name {0} --network='host' --tty --interactive{1}{2}{3} {0}:latest\n".format(self.container_name, volumes_help, ports_help, env_vars_help)
         s_out += "  # Start the previously run container\n"
         s_out += "  sudo docker start --interactive {0}\n".format(self.container_name)
         s_out += "  # Connect to a running container\n"
