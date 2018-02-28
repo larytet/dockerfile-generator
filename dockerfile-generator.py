@@ -112,7 +112,7 @@ def substitute_evn_variables(s, env_variables):
     '''
     replaced = False
     for env_variable in env_variables:
-        s_new = string.replace(s, "${{{0}}}".format(env_variable), env_variables[env_variable])
+        s_new = string.replace(s, "${{{0}}}".format(env_variable), env_variables[env_variable].value)
         replaced |= s != s_new
         s = s_new
     return replaced, s 
@@ -180,6 +180,22 @@ def split_file_paths(s):
 
     return None, None
 
+def split_env_definition(s):
+    '''
+    I do not support all legal file paths here
+    '''
+    patterns = ['"(.+)" +"(.+)"', r'(\S+) +(\S+)']
+    pattern_match = None
+    for pattern in patterns:
+        pattern_match = re.match(pattern, s)
+        if pattern_match:
+            break
+        
+    if pattern_match:
+        return pattern_match.group(1), pattern_match.group(2)
+
+    return s, ""
+
 def get_docker_config():
     filenames = ["/etc/docker/daemon.json"]
     for filename in filenames:
@@ -192,6 +208,7 @@ def get_docker_config():
 VolumeDefinitions = collections.namedtuple('VolumeDefinitions', ['src', 'dst', 'abs_path'])
 ExposedPort = collections.namedtuple('ExposedPort', ['port', 'protocol'])
 GeneratedFile = collections.namedtuple('GeneratedFile', ['filename', 'help'])
+EnvironmentVariable = collections.namedtuple('EnvironmentVariable', ['name', 'value', 'help', 'publish'])
     
 class RootGenerator(object):  
     def __init__(self, container_name, container_config):
@@ -345,8 +362,26 @@ class RootGenerator(object):
             words = process_macro(env_var)
             for w in words:
                 s_out += "\nENV {0}".format(w)
-                name, value = split_file_paths(w)
-                self.env_variables[name] = value
+                name, value = split_env_definition(w)
+                self.env_variables[name] = EnvironmentVariable(name, value, "", False)
+        return True, s_out
+
+    def generate_dockerfile_env_extended(self, section_config):
+        '''
+        Handle YAML 'environment_variables' - ENV command in the Dockerfile
+        '''
+        s_out = ""
+        environment_variables = section_config.get("env_ext", None)
+        if not environment_variables:
+            return False, ""
+        for environment_variable in environment_variables:
+            env_var_definition =  environment_variable["definition"]
+            env_var_help = environment_variable.get("help", "")
+            env_var_publish = environment_variable.get("publish", False)
+            s_out += "\nENV {0}".format(env_var_definition)
+            name, value = split_file_paths(env_var_definition)
+            self.env_variables[name] = EnvironmentVariable(name, value, env_var_help, env_var_publish)
+            
         return True, s_out
     
     def generate_dockerfile_copy(self, section_config):
@@ -402,6 +437,7 @@ class RootGenerator(object):
         # This is the order of commands in the Dockerfile ections
         generators = [self.generate_dockerfile_expose, 
                       self.generate_dockerfile_env,           
+                      self.generate_dockerfile_env_extended,           
                       self.generate_dockerfile_volume, 
                       self.generate_dockerfile_copy, 
                       self.generate_shell,
