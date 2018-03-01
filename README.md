@@ -7,6 +7,8 @@ The main goals:
 * Keep dockerfiles configuration in a single place
 * All dockerfiles have consistent structure
 * Switch to a different OS/OS release/different version of a package is trivial thanks to macros
+
+The script shows tips on how to build and run the container
    
 
 # HowTo
