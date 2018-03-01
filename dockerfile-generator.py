@@ -518,7 +518,7 @@ class RootGenerator(object):
                     env_vars_definition = "    * {0}={1} - ".format(env_var_name, env_var.value)
                 else:
                     env_vars_definition = "    * {0} - ".format(env_var_name)
-                padding = " " * (len(env_vars_definition))
+                padding = " " * len(env_vars_definition)
                 env_vars_help += env_vars_definition
                 first_line = True
                 env_help = "" 
