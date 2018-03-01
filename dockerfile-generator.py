@@ -304,7 +304,7 @@ class RootGenerator(object):
             return False, ""
         
         command = "\nRUN `# Install packages` && set -x"
-        command += " && \\\n\tapt-get update && \n\tapt-get -y install"
+        command += " && \\\n\tapt-get update && \\\n\tapt-get -y install"
         for package in packages:
             words = process_macro(package)
             for w in words:
