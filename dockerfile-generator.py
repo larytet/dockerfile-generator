@@ -515,11 +515,24 @@ class RootGenerator(object):
         for env_var_name, env_var in self.env_variables.iteritems():
             if env_var.publish:
                 if env_var.value:
-                    env_vars_help += " {0}={1}".format(env_var_name, env_var.value)
+                    env_vars_definition = "    * {0}={1} - ".format(env_var_name, env_var.value)
                 else:
-                    env_vars_help += " {0}".format(env_var_name)
+                    env_vars_definition = "    * {0} - ".format(env_var_name)
+                padding = " " * (len(env_vars_definition))
+                env_vars_help += env_vars_definition
+                first_line = True
+                env_help = "" 
+                for help_line in env_var.help:
+                    if not first_line:
+                        help_line = padding + help_line
+                    first_line = False 
+                    env_help += help_line + "\n"
+                if len(env_help):
+                    env_help = env_help[:-1]
+                env_vars_help += env_help
+                
         if env_vars_help:
-            env_vars_help = "  Flagged ENV vars:" + env_vars_help + "\n"
+            env_vars_help = "  Flagged ENV vars:\n" + env_vars_help + "\n"
         return env_vars_help
     
     def get_user_help_commands(self):
