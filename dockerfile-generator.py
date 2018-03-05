@@ -693,7 +693,10 @@ class RootGenerator(object):
             help_lines = ""
             for line in help:
                 help_lines += "# " + line + "\\n"
-            mkdir = "mkdir -p {0}".format(os.path.dirname(filename))
+            shell_dir = os.path.dirname(filename)
+            if shell_dir == "":
+                shell_dir = "/"
+            mkdir = "mkdir -p {0}".format(shell_dir)
             commands_concatenated += " && \\\n\t`# {1}`  && \\\n\t{2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, mkdir)
             for line in shell["lines"]:
                 words = process_macro(line)
