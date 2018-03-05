@@ -207,7 +207,7 @@ def get_docker_config():
 
 VolumeDefinitions = collections.namedtuple('VolumeDefinitions', ['src', 'dst', 'abs_path'])
 ExposedPort = collections.namedtuple('ExposedPort', ['port', 'protocol'])
-GeneratedFile = collections.namedtuple('GeneratedFile', ['filename', 'help'])
+GeneratedFile = collections.namedtuple('GeneratedFile', ['filename', 'help', 'publish'])
 EnvironmentVariable = collections.namedtuple('EnvironmentVariable', ['name', 'value', 'help', 'publish'])
     
 class RootGenerator(object):  
@@ -469,6 +469,8 @@ class RootGenerator(object):
             s_out += "  Custom shell scripts:\n"
         for shell in shells:
             shell_help = ""
+            if not shell.publish:
+                continue
             padding = " " * (len(shell.filename) + 9)
             first_line = True 
             for help_line in shell.help:
@@ -685,13 +687,14 @@ class RootGenerator(object):
         for shell in shells:
             filename = shell["filename"]
             help = shell.get("help", [])
+            publish = shell.get("publish", False)
             if collection != None:
-                collection.append(GeneratedFile(filename, help))
-    
+                collection.append(GeneratedFile(filename, help, publish))
             help_lines = ""
             for line in help:
                 help_lines += "# " + line + "\\n"
-            commands_concatenated += " && \\\n\t`# {1}` && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename)
+            mkdir = "mkdir -p {0}".format(os.path.dirname(filename))
+            commands_concatenated += " && \\\n\t`# {1}`  && \\\n\t{2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, mkdir)
             for line in shell["lines"]:
                 words = process_macro(line)
                 for w in words:
