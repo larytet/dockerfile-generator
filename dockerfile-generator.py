@@ -688,12 +688,16 @@ class RootGenerator(object):
             filename = shell["filename"]
             help = shell.get("help", [])
             publish = shell.get("publish", False)
+            filename_env = substitute_evn_variables_deep(filename, self.env_variables)
+            dirname = os.path.dirname(filename_env)
+            print("dirname", dirname, filename_env)
+            
             if collection != None:
                 collection.append(GeneratedFile(filename, help, publish))
             help_lines = ""
             for line in help:
                 help_lines += "# " + line + "\\n"
-            commands_concatenated += " && \\\n\t`# {1}`  && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename)
+            commands_concatenated += " && \\\n\t`# {1}` && \\\n\tmkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname)
             for line in shell["lines"]:
                 words = process_macro(line)
                 for w in words:
