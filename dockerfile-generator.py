@@ -690,7 +690,7 @@ class RootGenerator(object):
             publish = shell.get("publish", False)
             filename_env = substitute_evn_variables_deep(filename, self.env_variables)
             dirname = os.path.dirname(filename_env)
-            print("dirname", dirname, filename_env)
+            #print("dirname", dirname, filename_env)
             
             if collection != None:
                 collection.append(GeneratedFile(filename, help, publish))
