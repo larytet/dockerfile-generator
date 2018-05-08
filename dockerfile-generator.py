@@ -664,7 +664,7 @@ class RootGenerator(object):
             command += ' "{0}",'.format(dst)
             src_abs_path = find_folder(src, src)
             if src_abs_path == src:
-                logger.warning("I did not find foder {0} in your home directory".format(src))
+                logger.warning("I did not find folder {0} in your home directory".format(src))
             self.volumes.append(VolumeDefinitions(src, dst, src_abs_path))
         command = command[:-1]
         command += ' ]' 
