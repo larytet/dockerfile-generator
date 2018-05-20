@@ -2,6 +2,7 @@
 
 A Dockerfile is a list of commands to do in the container. 
 What if I want to create many dockerfiles which have significant overlap between them. I introduce a YAML configuration file and a Python script which parses the configuration file. 
+This is something like https://jsonnet.org/ but for a Dockefile
 The main goals:
 
 * Keep dockerfiles configuration in a single place
