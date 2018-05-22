@@ -10,7 +10,8 @@ The main goals:
 * Support macros
 * Switch to a different OS/OS release/different version of a package is trivial thanks to macros
 * Generate help, usage tips automatically
-* Convenient support for generation of shell scripts, README files  
+* Convenient support for generation of shell scripts, README files
+* Generate multiple dockerfiles from a single YAML configuration file
 
 The script shows tips on how to build and run the container
    
