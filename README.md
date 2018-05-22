@@ -9,7 +9,8 @@ The main goals:
 * All dockerfiles have consistent structure
 * Support macros
 * Switch to a different OS/OS release/different version of a package is trivial thanks to macros
-* Generate help, usage tips automatically 
+* Generate help, usage tips automatically
+* Convenient support for generation of shell scripts, README files  
 
 The script shows tips on how to build and run the container
    
