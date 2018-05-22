@@ -1,13 +1,15 @@
 # Why I need this
 
 A Dockerfile is a list of commands to do in the container. 
-What if I want to create many dockerfiles which have significant overlap between them. I introduce a YAML configuration file and a Python script which parses the configuration file. 
+What if I want to create many dockerfiles which share significant amount of code. I introduce a YAML configuration file and a Python script which parses the configuration file. 
 This is something like https://jsonnet.org/ but for a Dockefile
 The main goals:
 
-* Keep dockerfiles configuration in a single place
+* Keep multiple dockerfiles in a single place
 * All dockerfiles have consistent structure
+* Support macros
 * Switch to a different OS/OS release/different version of a package is trivial thanks to macros
+* Generate help, usage tips automatically 
 
 The script shows tips on how to build and run the container
    
