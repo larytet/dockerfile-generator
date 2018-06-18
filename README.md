@@ -15,6 +15,8 @@ The main goals:
 * Generate help, usage tips automatically
 * Convenient support for generation of shell scripts, README files
 * Generate multiple dockerfiles from a single YAML configuration file
+* Specify the expected docker environment in the Dockerfile, for example version of the docker, daemon.json
+* what else?
 
 The script shows tips on how to build and run the container
    
