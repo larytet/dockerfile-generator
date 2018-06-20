@@ -13,7 +13,7 @@ The main goals:
 * Enforce specific "best" practices like order of operations
 * Support macros
 * Switch to a different OS/OS release/different version of a package is trivial thanks to macros
-* Generate help, usage tips automatically
+* Generate help, usage tips, run time and source code comments automatically
 * Convenient support for generation of shell scripts, README files
 * Generate multiple dockerfiles from a single YAML configuration file
 * Specify the expected docker environment in the Dockerfile, for example version of the docker, daemon.json
