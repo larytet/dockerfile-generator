@@ -9,7 +9,8 @@ The original problew was to generate mutliple Dockerfiles with significant overl
 The main goals:
 
 * Keep multiple dockerfiles in a single place
-* All dockerfiles have consistent structure
+* All dockerfiles have a consistent structure
+* Enforce specific "best" practices like order of operations
 * Support macros
 * Switch to a different OS/OS release/different version of a package is trivial thanks to macros
 * Generate help, usage tips automatically
