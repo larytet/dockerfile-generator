@@ -38,13 +38,6 @@ containers:                                                        sudo docker s
                                                                  `# $get_release` && \
                                                                   cat /etc/*release && \
                                                                   gcc --version
-                            
-                            
-                            
-                            
-                            
-                            
-
 
 ```                                                                                                                                                                                                                                                                                              
 
