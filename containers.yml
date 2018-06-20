@@ -12,7 +12,8 @@ macros:
   - mkdir -p /etc/docker
  
  environment_vars:
-   - SHARED_FOLDER /etc/docker # I need an env variable referencing a persistent folder 
+   # I need an env variable referencing a persistent folder
+   - SHARED_FOLDER /etc/docker  
 
 containers:
 
