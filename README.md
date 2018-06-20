@@ -11,6 +11,8 @@ The main goals:
 * Keep multiple dockerfiles in a single place
 * All dockerfiles have a consistent structure
 * Enforce specific "best" practices like order of operations
+* Control number of layers
+* Sort the lists of arguments
 * Support macros, reduce code duplication
 * Switch to a different OS/OS release/different version of a package is trivial thanks to macros
 * Generate help, usage tips, run time and source code comments automatically
