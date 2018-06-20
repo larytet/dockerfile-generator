@@ -57,17 +57,17 @@ containers:                                                        sudo docker s
     env:                                                         RUN `# Install packages` && set -x && \
       - $environment_vars                                         yum -y -v install gcc gcc-c++ make rpm-build && \
                                                                   yum clean all && yum -y clean packages
- ubuntu.16.04:                                                   
-    base: ubuntu:16.04                                           RUN `# Execute commands` && set -x  && \
-    packager: deb                                                `# $get_release` && \
-    install:                                                      cat /etc/*release && \
-      - build-essential                                           gcc --version
-    run:
-      - $get_release
-    env:
-      - $environment_vars
-    expose:
-      - 8080/TCP
+                                                                 
+                                                                 RUN `# Execute commands` && set -x  && \
+                                                                 `# $get_release` && \
+                                                                  cat /etc/*release && \
+                                                                  gcc --version
+                            
+                            
+                            
+                            
+                            
+                            
 
 
 ```                                                                                                                                                                                                                                                                                              
