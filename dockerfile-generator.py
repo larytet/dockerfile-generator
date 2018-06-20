@@ -600,7 +600,7 @@ class RootGenerator(object):
         env_vars_help = self.get_user_help_env()
 
         dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.container_name))
-        s_out += "\n# sudo docker build --tag {0}:latest --file {1}  .".format(self.container_name, dockerfile_path)
+        s_out += "\n# sudo docker build --tag {0}:latest --file {1}  .".format(self.container_name, replace_home(dockerfile_path))
         s_out += "\n# sudo docker run --name {0} --tty --interactive  {1}{2} {0}:latest".format(self.container_name, volumes_help, env_vars_help)
         s_out += "\n# sudo docker start --interactive {0}".format(self.container_name)
         exmaples = container_config.get("examples", [])
