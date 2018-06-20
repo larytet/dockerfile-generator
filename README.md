@@ -1,27 +1,3 @@
-# Why I need this
-
-A Dockerfile is a list of commands which should be executed in the container. 
-What if I want to create a few non trivial dockerfiles which share a significant amount of code. I introduce a YAML configuration file and a Python script which parses the configuration file. 
-This is something like https://jsonnet.org/ but for a Dockefile
-
-The original problew was to generate mutliple Dockerfiles with significant overlap. Specifically I needed (cross) build environments to produce kernel modules and STAP modules for different Linux kernels. My approach to the problem was a container wiht Linux header files, Linux kernel symbols, correct tool chain, dependencies. The approach required a tool which generated a Dockerfile on the fly given the kernel version and distribution. 
-
-The main goals:
-
-* Keep multiple dockerfiles in a single place
-* All dockerfiles have a consistent structure
-* Enforce specific "best" practices like order of operations
-* Control number of layers
-* Sort the lists of arguments
-* Support macros, reduce code duplication
-* Switch to a different OS/OS release/different version of a package is trivial thanks to macros
-* Generate help, usage tips, run time and source code comments automatically
-* Convenient support for generation of shell scripts, README files
-* Generate multiple dockerfiles from a single YAML configuration file
-* Specify the expected docker environment in the Dockerfile, for example version of the docker, daemon.json
-* what else?
-
-
 # What it does
 
 The Python script converts YAML on the left to the Dockerfile on the right 
@@ -71,6 +47,32 @@ containers:                                                        sudo docker s
 
 
 ```                                                                                                                                                                                                                                                                                              
+
+# Why I need this
+
+A Dockerfile is a list of commands which should be executed in the container. 
+What if I want to create a few non trivial dockerfiles which share a significant amount of code. I introduce a YAML configuration file and a Python script which parses the configuration file. 
+This is something like https://jsonnet.org/ but for a Dockefile
+
+The original problew was to generate mutliple Dockerfiles with significant overlap. Specifically I needed (cross) build environments to produce kernel modules and STAP modules for different Linux kernels. My approach to the problem was a container wiht Linux header files, Linux kernel symbols, correct tool chain, dependencies. The approach required a tool which generated a Dockerfile on the fly given the kernel version and distribution. 
+
+The main goals:
+
+* Keep multiple dockerfiles in a single place
+* All dockerfiles have a consistent structure
+* Enforce specific "best" practices like order of operations
+* Control number of layers
+* Sort the lists of arguments
+* Support macros, reduce code duplication
+* Switch to a different OS/OS release/different version of a package is trivial thanks to macros
+* Generate help, usage tips, run time and source code comments automatically
+* Convenient support for generation of shell scripts, README files
+* Generate multiple dockerfiles from a single YAML configuration file
+* Specify the expected docker environment in the Dockerfile, for example version of the docker, daemon.json
+* what else?
+
+
+
 # HowTo
 
 Install missing Python packages
