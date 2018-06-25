@@ -20,6 +20,11 @@ containers:
  centos7:
     base: centos:centos7
     packager: rpm
+    help_disable: false  # optional flags controlling the Dockerfile L&F 
+    readme_disable: false
+    build_trace_disable: false
+    comments_disable: false
+    
     install:
       - $build_essential_centos 
       - rpm-build
