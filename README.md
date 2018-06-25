@@ -62,6 +62,7 @@ The main goals:
 * Convenient support for generation of shell scripts, README files
 * Generate multiple dockerfiles from a single YAML configuration file
 * Specify the expected docker environment in the Dockerfile, for example version of the docker, daemon.json
+* Can force order of the Dockerfile updates and reduce the image size
 * what else?
 
 
