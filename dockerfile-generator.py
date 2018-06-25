@@ -220,6 +220,7 @@ class RootGenerator(object):
         self.ports = []
         self.env_variables = {}
         self.packager = container_config["packager"]
+        self.help_disable = container_config.get("help_disable", False)
         self.examples = container_config.get("examples", [])
         self.warning_folder_does_not_exist = False
 
@@ -255,12 +256,14 @@ class RootGenerator(object):
         if not res:
             return False, None
 
-        f.write(container_help)
-        f.write("\n")
+        if not self.help_disable:
+            f.write(container_help)
+            f.write("\n")
         f.write(container_header)
         f.write("\n")
-        f.write("RUN set +x && `# Generate README file` && \
-            echo -e '{0}' > README".format(container_readme))
+        if not self.help_disable:
+            f.write("RUN set +x && `# Generate README file` && \
+                echo -e '{0}' > README".format(container_readme))
         f.write(container_entrypoint)
         f.write(container_sections)
 
