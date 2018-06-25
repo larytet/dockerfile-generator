@@ -221,6 +221,10 @@ class RootGenerator(object):
         self.env_variables = {}
         self.packager = container_config["packager"]
         self.help_disable = container_config.get("help_disable", False)
+        self.readme_disable = container_config.get("readme_disable", False)
+        self.build_trace_disable = container_config.get("build_trace_disable", False)
+        self.comments_disable = container_config.get("comments_disable", False)
+
         self.examples = container_config.get("examples", [])
         self.warning_folder_does_not_exist = False
 
@@ -261,7 +265,7 @@ class RootGenerator(object):
             f.write("\n")
         f.write(container_header)
         f.write("\n")
-        if not self.help_disable:
+        if not self.readme_disable:
             f.write("RUN set +x && `# Generate README file` && \
                 echo -e '{0}' > README".format(container_readme))
         f.write(container_entrypoint)
@@ -284,8 +288,11 @@ class RootGenerator(object):
         if not packages:
             return False, ""
         
-        command = "\nRUN `# Install packages` && set -x"
-        command += " && \\\n\tyum -y -v install"
+        if self.build_trace_disable:
+            command = "\nRUN "
+        else:
+            command = "\nRUN `# Install packages` && set -x && "
+        command += " \\\n\tyum -y -v install"
         for package in packages:
             words = process_macro(package)
             for w in words:
@@ -306,8 +313,11 @@ class RootGenerator(object):
         if not packages:
             return False, ""
         
-        command = "\nRUN `# Install packages` && set -x"
-        command += " && \\\n\tapt-get update && \\\n\tapt-get -y install"
+        if self.build_trace_disable:
+            command = "\nRUN "
+        else:
+            command = "\nRUN `# Install packages` && set -x &&"
+        command += " \\\n\tapt-get update && \\\n\tapt-get -y install"
         for package in packages:
             words = process_macro(package)
             for w in words:
@@ -332,7 +342,17 @@ class RootGenerator(object):
         else:
             logger.error("Unknown packager '{0}'".format(packager))
         return res, s_out
-    
+
+    def generate_command_chain(self, first, command, lead):
+        '''
+        If first is True return 'command', else add lead
+        The idea is to save some code lines and conditions
+        '''    
+        if first:
+            return False, command
+        else:
+            return False, lead+command
+        
     def generate_dockerfile_run(self, section_config):
         '''
         Handle YAML 'run' - add a RUN section to the Dockerfile
@@ -341,13 +361,21 @@ class RootGenerator(object):
         commands = section_config.get("run", None)
         if not commands:
             return False, ""
-        commands_concatenated = "\nRUN `# Execute commands` && set -x"
+        if self.build_trace_disable:
+            commands_concatenated = "\nRUN "
+        else:
+            commands_concatenated = "\nRUN `# Execute commands` && set -x"
+        first = True        
         for command in commands:
             if not ' ' in command:
-                commands_concatenated += "  && \\\n`# {0}`".format(command)
+                if not self.build_trace_disable:
+                    first, c = self.generate_command_chain(first, " `# {0}`".format(command),  " && \\\n")
+                    commands_concatenated += c
+                        
             words = process_macro(command)
             for w in words:
-                commands_concatenated += " && \\\n\t{0}".format(w)
+                first, c = self.generate_command_chain(first, " {0}".format(w),  " && \\\n\t")
+                commands_concatenated += c
         
         s_out += commands_concatenated 
         return True, s_out 
@@ -454,7 +482,8 @@ class RootGenerator(object):
         section_idx = 0
         for section_config in sections:
             # do not add Section index if there is only one section
-            if len(sections) > 1: s_out += "\n# Section {0}".format(section_idx) 
+            if not self.comments_disable:
+                if len(sections) > 1: s_out += "\n# Section {0}".format(section_idx) 
             section_idx += 1
             for generator in generators:
                 res, s_tmp = generator(section_config)
@@ -686,7 +715,11 @@ class RootGenerator(object):
         if not shells:
             return False, ""
     
-        commands_concatenated = "\nRUN `# Generate files` && set -x"
+        if not self.build_trace_disable:
+            commands_concatenated = "\nRUN `# Generate files` && set -x"
+        else:
+            commands_concatenated = "\nRUN "
+        first = True
         for shell in shells:
             filename = shell["filename"]
             help = shell.get("help", [])
@@ -700,13 +733,20 @@ class RootGenerator(object):
             help_lines = ""
             for line in help:
                 help_lines += "# " + line + "\\n"
-            commands_concatenated += " && \\\n\t`# {1}` && \\\n\tmkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname)
+                if not self.build_trace_disable:
+                    first, c = self.generate_command_chain(first, " `# {1}` && \\\n\tmkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
+                    commands_concatenated += c
+                else:
+                    first, c = self.generate_command_chain(first, "  mkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
+                    commands_concatenated += c
             for line in shell["lines"]:
                 words = process_macro(line)
                 for w in words:
-                    commands_concatenated += " && \\\n\techo \"{0}\" >> {1}".format(w, filename)
+                    first, c = self.generate_command_chain(first, " echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
+                    commands_concatenated += c
             if set_executable:
-                commands_concatenated += " && \\\n\tchmod +x {0}".format(filename)
+                first, c = self.generate_command_chain(first, " chmod +x {0}".format(filename),  " && \\\n\t")
+                commands_concatenated += c
         s_out += commands_concatenated
         return True, s_out
     
