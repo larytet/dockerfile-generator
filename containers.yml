@@ -15,7 +15,7 @@ macros:
    # I need an env variable referencing a persistent folder
    - SHARED_FOLDER /etc/docker  
 
-containers:
+dockerfiles:
 
  centos7:
     base: centos:centos7
@@ -34,18 +34,22 @@ containers:
       - $environment_vars
 
  ubuntu.16.04:
-    base: ubuntu:16.04
     packager: deb
-    sections:
-      - section:
-        expose:
-          - 8080/TCP
-        install:
-          - build-essential    
-      - section:
-        run:
-          - $get_release
-        env:
-          - $environment_vars
-        
-
+    stages:
+      - intermediate: 
+         base: ubuntu:16.04
+         sections:
+           - section:
+             expose:
+               - 8080/TCP
+             install:
+               - build-essential    
+           - section:
+             run:
+               - $get_release
+             env:
+               - $environment_vars
+      - final: 
+            base: intermediate
+            run:
+              - echo "Final"

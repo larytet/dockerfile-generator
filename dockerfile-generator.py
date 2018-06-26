@@ -25,46 +25,60 @@ Options:
 Example of the YAML file:
  
 macros:
+ get_release:
+  - cat /etc/*release
+  - gcc --version
 
  build_essential_centos:
- - gcc 
- - gcc-c++ 
- - make
-
- get_release:
- - cat /etc/*release
- - gcc --version
-
+  - gcc 
+  - gcc-c++ 
+  - make
+ 
+ make_dir:
+  - mkdir -p /etc/docker
+ 
  environment_vars:
- - SHARED_FOLDER /etc/docker
+   # I need an env variable referencing a persistent folder
+   - SHARED_FOLDER /etc/docker  
 
-containers:
+dockerfiles:
 
  centos7:
     base: centos:centos7
     packager: rpm
+    help_disable: false  # optional flags controlling the Dockerfile L&F 
+    readme_disable: false
+    build_trace_disable: false
+    comments_disable: false
+    
     install:
-    - $build_essential_centos 
-    - rpm-build
+      - $build_essential_centos 
+      - rpm-build
     run:
-    - $get_release
+      - $get_release
     env:
-     - $environment_vars
-     
- centos6:
-    base: centos:centos6
-    packager: rpm
-    sections:
-      - section:    
-        install:
-          - $build_essential_centos 
-          - rpm-build
-      - section:    
-        run:
-          - $get_release
-        env:
-          - $environment_vars
-     
+      - $environment_vars
+
+ ubuntu.16.04:
+    packager: deb
+    stages:
+      - intermediate: 
+         base: ubuntu:16.04
+         sections:
+           - section:
+             expose:
+               - 8080/TCP
+             install:
+               - build-essential    
+           - section:
+             run:
+               - $get_release
+             env:
+               - $environment_vars
+      - final: 
+            base: intermediate
+            run:
+              - echo "Final"
 '''
 
 import yaml
@@ -210,22 +224,25 @@ ExposedPort = collections.namedtuple('ExposedPort', ['port', 'protocol'])
 GeneratedFile = collections.namedtuple('GeneratedFile', ['filename', 'help', 'publish'])
 EnvironmentVariable = collections.namedtuple('EnvironmentVariable', ['name', 'value', 'help', 'publish'])
     
-class RootGenerator(object):  
-    def __init__(self, container_name, container_config):
+class RootGenerator(object):
+    '''
+    One object of this type for every Dockerfile
+    '''  
+    def __init__(self, dockerfile_name, dockerfile_config):
         object.__init__(RootGenerator)
-        self.container_name, self.container_config = container_name, container_config
+        self.dockerfile_name, self.dockerfile_config = dockerfile_name, dockerfile_config
         
         self.volumes = []
         self.shells = []
         self.ports = []
         self.env_variables = {}
-        self.packager = container_config["packager"]
-        self.help_disable = container_config.get("help_disable", False)
-        self.readme_disable = container_config.get("readme_disable", False)
-        self.build_trace_disable = container_config.get("build_trace_disable", False)
-        self.comments_disable = container_config.get("comments_disable", False)
+        self.packager = dockerfile_config["packager"]
+        self.help_disable = dockerfile_config.get("help_disable", False)
+        self.readme_disable = dockerfile_config.get("readme_disable", False)
+        self.build_trace_disable = dockerfile_config.get("build_trace_disable", False)
+        self.comments_disable = dockerfile_config.get("comments_disable", False)
 
-        self.examples = container_config.get("examples", [])
+        self.examples = dockerfile_config.get("examples", [])
         self.warning_folder_does_not_exist = False
 
     def generate_dockerfile(self):
@@ -235,42 +252,24 @@ class RootGenerator(object):
         2. build different parts of the Dockerfile 
         3. output the collected string to the Dockerfile  
         '''
-        container_name, container_config = self.container_name, self.container_config
+        dockerfile_name, dockerfile_config = self.dockerfile_name, self.dockerfile_config
 
         # Create a new dockerfile with name like "Dockerfile.centos7"
-        self.dockerfile_name = "Dockerfile.{0}".format(container_name)
+        self.dockerfile_name = "Dockerfile.{0}".format(dockerfile_name)
         
-        res, container_header = self.generate_header()
-        res, container_entrypoint = self.generate_entrypoint()
-        # A container contains one or more sections
-        sections = container_config.get("sections", None)
-    
-        # "sections" is optional. I am forcing "sections" mode in all cases
+        # A container contains one or more stage
+        stages = dockerfile_config.get("stages", None)
+        # "stages" is optional. I am forcing "stages" mode in all cases
         # and handling the YAML using the same function 
-        if not sections:
-            sections = [container_config]
-
-        _, container_sections = self.generate_dockerfile_sections(sections)
-        # I can generate help and README only after I parsed the sections and collected
-        # all volumes etc
-        _, container_help = self.generate_container_help()
-        _, container_readme = self.generate_container_readme()
+        if not stages:
+            stages = [{None:dockerfile_config}]
+        
+        _, container_stages = self.generate_dockerfile_stages(stages)
 
         res, f = open_file(self.dockerfile_name, "w")
         if not res:
             return False, None
-
-        if not self.help_disable:
-            f.write(container_help)
-            f.write("\n")
-        f.write(container_header)
-        f.write("\n")
-        if not self.readme_disable:
-            f.write("RUN set +x && `# Generate README file` && \
-                echo -e '{0}' > README".format(container_readme))
-        f.write(container_entrypoint)
-        f.write(container_sections)
-
+        f.write(container_stages)
         f.close()
     
         _, container_help = self.get_user_help()
@@ -441,19 +440,19 @@ class RootGenerator(object):
                     logger.warning("Faled to parse COPY arguments {0}".format(w))
         return True, s_out
     
-    def generate_header(self):
+    def generate_header(self, stage_config, stage_name):
         s_out = ""
-        s_out += "\nFROM {0}".format(self.container_config["base"])
+        s_out += "FROM {0} as {1}".format(stage_config["base"], stage_name)
         s_out += "\n# Automatically generated from {0}".format(os.path.abspath(config_file))
         s_out += "\n"
         return True, s_out
     
-    def generate_entrypoint(self):
+    def generate_entrypoint(self, stage_config):
         '''
         Add CMD 
         '''
         s_out = ""
-        entrypoint = self.container_config.get("entrypoint", None)
+        entrypoint = stage_config.get("entrypoint", None)
         if not entrypoint:
             return False, s_out
         
@@ -461,8 +460,52 @@ class RootGenerator(object):
         command += " {0}".format(entrypoint) 
         s_out += command
         return True, s_out
+
+    def generate_dockerfile_stages(self, stages):
+        s_out = ""
+        hostname, IP = get_machine_ip()
+        s_out += "# Generated by https://github.com/larytet/dockerfile-generator on {0} {1}".format(hostname, IP)
+        s_out += "\n"
+
+        for help in self.dockerfile_config.get("help", []):
+            s_out += "\n# {0}".format(help)
+
+        stage_idx = 0
+        for stage in stages:
+            stage_name, stage_config = stage.popitem()
+
+            # do not add Section index if there is only one section
+            if not self.comments_disable:
+                if stage_name: s_out += "\n# Stage {0} ({1})".format(stage_name, stage_idx)
+            stage_idx += 1 
+            sections = stage_config.get("sections", None)
+            if not sections:
+                sections = [stage_config]
+            _, stage_sections = self.generate_dockerfile_sections(stage_config, stage_name, sections)
+
+            print "stage_config", stage_config
+            res, container_header = self.generate_header(stage_config, stage_name)
+            res, container_entrypoint = self.generate_entrypoint(stage_config)
+            # I can generate help and README only after I parsed the sections and collected
+            # all volumes etc
+            _, container_help = True, "" # self.generate_container_help()
+            _, container_readme = self.generate_container_readme()
+    
+            if not self.help_disable:
+                s_out += container_help
+                s_out += "\n"
+            s_out += container_header
+            s_out += "\n"
+            if not self.readme_disable:
+                s_out += "RUN set +x && `# Generate README file` && \
+                    echo -e '{0}' > README".format(container_readme)
+            s_out += container_entrypoint
+            s_out += stage_sections
+    
+            
+        return True, s_out
         
-    def generate_dockerfile_sections(self, sections):
+    def generate_dockerfile_sections(self, stage_config, stage_name, sections):
         '''
         Process the "sections" and add the sections data to the Dockerfile
         '''
@@ -530,7 +573,7 @@ class RootGenerator(object):
     
     def get_user_help_examples(self):
         s_out = ""
-        exmaples = self.container_config.get("examples", [])
+        exmaples = self.dockerfile_config.get("examples", [])
         if exmaples:
             s_out += "  Examples:\n"
         for example in exmaples:
@@ -588,19 +631,19 @@ class RootGenerator(object):
             
         env_vars_help = self.get_user_help_env()
 
-        dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.container_name))
+        dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.dockerfile_name))
         s_out += "  # Build the container. See https://docs.docker.com/engine/reference/commandline/build\n"
-        s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.container_name, replace_home(dockerfile_path))
+        s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.dockerfile_name, replace_home(dockerfile_path))
         s_out += "  # Run the previously built container. See https://docs.docker.com/engine/reference/commandline/run\n"
-        s_out += "  sudo docker run --name {0} --network='host' --tty --interactive{1}{2}{3} {0}:latest\n".format(self.container_name, volumes_help, ports_help, env_vars_help)
+        s_out += "  sudo docker run --name {0} --network='host' --tty --interactive{1}{2}{3} {0}:latest\n".format(self.dockerfile_name, volumes_help, ports_help, env_vars_help)
         s_out += "  # Start the previously run container\n"
-        s_out += "  sudo docker start --interactive {0}\n".format(self.container_name)
+        s_out += "  sudo docker start --interactive {0}\n".format(self.dockerfile_name)
         s_out += "  # Connect to a running container\n"
-        s_out += "  sudo docker exec --interactive --tty {0} /bin/bash\n".format(self.container_name)
+        s_out += "  sudo docker exec --interactive --tty {0} /bin/bash\n".format(self.dockerfile_name)
         s_out += "  # Save the container for the deployment to another machine. Use 'docker load' to load saved containers\n"
-        s_out += "  sudo docker save {0} -o {0}.tar\n".format(self.container_name)
+        s_out += "  sudo docker save {0} -o {0}.tar\n".format(self.dockerfile_name)
         s_out += "  # Remove container to 'run' it again\n"
-        s_out += "  sudo docker rm {0}\n".format(self.container_name)
+        s_out += "  sudo docker rm {0}\n".format(self.dockerfile_name)
         
         return s_out
     
@@ -609,8 +652,8 @@ class RootGenerator(object):
         Print help and examples for the container
         '''
         s_out = ""
-        s_out += "Container '{0}' help:\n".format(self.container_name)
-        for help in self.container_config.get("help", []):
+        s_out += "Container '{0}' help:\n".format(self.dockerfile_name)
+        for help in self.dockerfile_config.get("help", []):
             s_out += "  {0}\n".format(help)
         s_out += self.get_user_help_commands()
         s_out += self.get_user_help_shells()
@@ -621,24 +664,17 @@ class RootGenerator(object):
         return True, s_out        
     
     def generate_container_help(self):
-        hostname, IP = get_machine_ip()
         s_out = ""
-        s_out += "\n# Generated by https://github.com/larytet/dockerfile-generator on {0} {1}".format(hostname, IP)
-        s_out += "\n"
-
-        for help in self.container_config.get("help", []):
-            s_out += "\n# {0}".format(help)
-
         volumes_help = ""
         for volume in self.volumes:
             volumes_help += " --volume {0}:{1}".format(volume.src, volume.dst)
         env_vars_help = self.get_user_help_env()
 
-        dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.container_name))
-        s_out += "\n# sudo docker build --tag {0}:latest --file {1}  .".format(self.container_name, replace_home(dockerfile_path))
-        s_out += "\n# sudo docker run --name {0} --tty --interactive  {1}{2} {0}:latest".format(self.container_name, volumes_help, env_vars_help)
-        s_out += "\n# sudo docker start --interactive {0}".format(self.container_name)
-        exmaples = container_config.get("examples", [])
+        dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.dockerfile_name))
+        s_out += "\n# sudo docker build --tag {0}:latest --file {1}  .".format(self.dockerfile_name, replace_home(dockerfile_path))
+        s_out += "\n# sudo docker run --name {0} --tty --interactive  {1}{2} {0}:latest".format(self.dockerfile_name, volumes_help, env_vars_help)
+        s_out += "\n# sudo docker start --interactive {0}".format(self.dockerfile_name)
+        exmaples = dockerfile_config.get("examples", [])
         if exmaples:
             s_out += "\n# Examples:"
         for example in exmaples:
@@ -654,7 +690,7 @@ class RootGenerator(object):
         s_out = ""
         hostname, IP = get_machine_ip()
         s_out += "Generated by https://github.com/larytet/dockerfile-generator on {0} {1}\n".format(hostname, IP)
-        for help in self.container_config.get("help", []):
+        for help in self.dockerfile_config.get("help", []):
             s_out += "{0}\n".format(help)
         s_out += self.get_user_help_commands()
         s_out += self.get_user_help_shells() 
@@ -805,19 +841,22 @@ if __name__ == '__main__':
             for macro in macros:
                 MACROS[macro] = macros[macro]
 
-        containers = data_map.get("containers", None)
-        if not containers:
+        dockerfiles = data_map.get("dockerfiles", None)
+        if not dockerfiles:
+            # backward compatibility
+            dockerfiles = data_map.get("containers", None)
+        if not dockerfiles:
             logger.info("No containers specified in the {0}".format(config_file))
             break
         if not arguments["--disable_help"]:
             show_help(data_map)
 
         # Generate the containers required by the YAML configuration file
-        for container_name, container_config  in containers.items():
-            root_generator = RootGenerator(container_name, container_config)
-            res, container_help = root_generator.generate_dockerfile()
+        for dockerfile_name, dockerfile_config  in dockerfiles.items():
+            root_generator = RootGenerator(dockerfile_name, dockerfile_config)
+            res, dockerfile_help = root_generator.generate_dockerfile()
             if res and not arguments["--disable_help"]:
-                print(container_help)
+                print(dockerfile_help)
 
         res, filename, docker_config = get_docker_config()
         if res:
