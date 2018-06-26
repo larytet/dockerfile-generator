@@ -36,7 +36,7 @@ dockerfiles:
  ubuntu.16.04:
     packager: deb
     stages:
-      - stage intermediate: 
+      - intermediate: 
          base: ubuntu:16.04
          sections:
            - section:
@@ -49,6 +49,7 @@ dockerfiles:
                - $get_release
              env:
                - $environment_vars
-      - stage final: 
+      - final: 
+            base: intermediate
             run:
-              echo "Final"
+              - echo "Final"

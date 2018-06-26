@@ -462,6 +462,7 @@ class RootGenerator(object):
                 sections = [stage_config]
             _, stage_sections = self.generate_dockerfile_sections(stage_config, stage_name, sections)
 
+            print "stage_config", stage_config
             res, container_header = self.generate_header(stage_config, stage_name)
             res, container_entrypoint = self.generate_entrypoint(stage_config)
             # I can generate help and README only after I parsed the sections and collected
