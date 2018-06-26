@@ -34,10 +34,10 @@ containers:
       - $environment_vars
 
  ubuntu.16.04:
+    packager: deb
     stages:
       - stage intermediate: 
          base: ubuntu:16.04
-         packager: deb
          sections:
            - section:
              expose:
