@@ -15,7 +15,7 @@ macros:
    # I need an env variable referencing a persistent folder
    - SHARED_FOLDER /etc/docker  
 
-containers:
+dockerfiles:
 
  centos7:
     base: centos:centos7
