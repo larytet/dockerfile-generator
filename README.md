@@ -53,7 +53,7 @@ The main goals:
 
 * Keep multiple dockerfiles in a single place
 * All dockerfiles have a consistent structure
-* Enforce specific "best" practices like order of operations
+* Enforce specific "best" practices like order of operations, running Dockerfile linter
 * Control number of layers
 * Sort the lists of arguments
 * Support macros, reduce code duplication
