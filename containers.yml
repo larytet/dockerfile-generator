@@ -34,18 +34,21 @@ containers:
       - $environment_vars
 
  ubuntu.16.04:
-    base: ubuntu:16.04
-    packager: deb
-    sections:
-      - section:
-        expose:
-          - 8080/TCP
-        install:
-          - build-essential    
-      - section:
-        run:
-          - $get_release
-        env:
-          - $environment_vars
-        
-
+    stages:
+      - stage intermediate: 
+         base: ubuntu:16.04
+         packager: deb
+         sections:
+           - section:
+             expose:
+               - 8080/TCP
+             install:
+               - build-essential    
+           - section:
+             run:
+               - $get_release
+             env:
+               - $environment_vars
+      - stage final: 
+            run:
+              echo "Final"

@@ -242,15 +242,15 @@ class RootGenerator(object):
         
         res, container_header = self.generate_header()
         res, container_entrypoint = self.generate_entrypoint()
-        # A container contains one or more sections
-        sections = container_config.get("sections", None)
-    
-        # "sections" is optional. I am forcing "sections" mode in all cases
+        
+        # A container contains one or more stage
+        stages = container_config.get("stages", None)
+        # "stages" is optional. I am forcing "stages" mode in all cases
         # and handling the YAML using the same function 
-        if not sections:
-            sections = [container_config]
-
-        _, container_sections = self.generate_dockerfile_sections(sections)
+        if not stages:
+            stages = [container_config]
+        
+        _, container_stages = self.generate_dockerfile_stages(stages)
         # I can generate help and README only after I parsed the sections and collected
         # all volumes etc
         _, container_help = self.generate_container_help()
@@ -461,6 +461,19 @@ class RootGenerator(object):
         command += " {0}".format(entrypoint) 
         s_out += command
         return True, s_out
+
+    def generate_dockerfile_stages(self, stages):
+        s_out = ""
+        stage_idx = 0
+        for stage_config in stages:
+            # do not add Section index if there is only one section
+            if not self.comments_disable:
+                if len(stages) > 1: s_out += "\n# Stage {0}".format(section_idx) 
+            sections = stage_config.get("sections", None)
+            if not sections:
+                sections = [stage_config]
+            _, stage_sections = generate_dockerfile_sections(self, sections)
+
         
     def generate_dockerfile_sections(self, sections):
         '''
