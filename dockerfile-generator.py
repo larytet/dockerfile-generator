@@ -444,7 +444,7 @@ class RootGenerator(object):
     def generate_header(self):
         s_out = ""
         s_out += "\nFROM {0}".format(self.container_config["base"])
-        s_out += "\nMAINTAINER automatically generated from {0}".format(os.path.abspath(config_file))
+        s_out += "\n# Automatically generated from {0}".format(os.path.abspath(config_file))
         s_out += "\n"
         return True, s_out
     
@@ -521,7 +521,10 @@ class RootGenerator(object):
         if ports:
             s_out += "  Exposed ports:"
         for port in ports:
-            s_out += " {0}/{1}".format(port.port, port.protocol)
+            if port.protocol == "TCP":
+                s_out += " {0}/{1}".format(port.port, port.protocol)
+            else:
+                s_out += " {0}".format(port.port)
         s_out += "\n"
         return s_out
     
@@ -672,10 +675,15 @@ class RootGenerator(object):
         for port in ports:
             words = port.split("/")
             if len(words) == 1:
+                isTcp = True
                 self.ports.append(ExposedPort(words[0], "TCP"))
             else:
                 self.ports.append(ExposedPort(words[0], words[1]))
-            command += " {0}".format(port) 
+                isTcp = (words[1] == "TCP")
+            if isTcp:
+                command += " {0}".format(words[0])
+            else: 
+                command += " {0}".format(port)
         s_out += command
     
         return True, s_out
