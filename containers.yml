@@ -36,13 +36,16 @@ containers:
  ubuntu.16.04:
     base: ubuntu:16.04
     packager: deb
-    install:
-      - build-essential
-    run:
-      - $get_release
-    env:
-      - $environment_vars
-    expose:
-      - 8080/TCP
-
+    sections:
+      - section:
+        expose:
+          - 8080/TCP
+        install:
+          - build-essential    
+      - section:
+        run:
+          - $get_release
+        env:
+          - $environment_vars
+        
 
