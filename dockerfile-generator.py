@@ -25,46 +25,60 @@ Options:
 Example of the YAML file:
  
 macros:
+ get_release:
+  - cat /etc/*release
+  - gcc --version
 
  build_essential_centos:
- - gcc 
- - gcc-c++ 
- - make
-
- get_release:
- - cat /etc/*release
- - gcc --version
-
+  - gcc 
+  - gcc-c++ 
+  - make
+ 
+ make_dir:
+  - mkdir -p /etc/docker
+ 
  environment_vars:
- - SHARED_FOLDER /etc/docker
+   # I need an env variable referencing a persistent folder
+   - SHARED_FOLDER /etc/docker  
 
-containers:
+dockerfiles:
 
  centos7:
     base: centos:centos7
     packager: rpm
+    help_disable: false  # optional flags controlling the Dockerfile L&F 
+    readme_disable: false
+    build_trace_disable: false
+    comments_disable: false
+    
     install:
-    - $build_essential_centos 
-    - rpm-build
+      - $build_essential_centos 
+      - rpm-build
     run:
-    - $get_release
+      - $get_release
     env:
-     - $environment_vars
-     
- centos6:
-    base: centos:centos6
-    packager: rpm
-    sections:
-      - section:    
-        install:
-          - $build_essential_centos 
-          - rpm-build
-      - section:    
-        run:
-          - $get_release
-        env:
-          - $environment_vars
-     
+      - $environment_vars
+
+ ubuntu.16.04:
+    packager: deb
+    stages:
+      - intermediate: 
+         base: ubuntu:16.04
+         sections:
+           - section:
+             expose:
+               - 8080/TCP
+             install:
+               - build-essential    
+           - section:
+             run:
+               - $get_release
+             env:
+               - $environment_vars
+      - final: 
+            base: intermediate
+            run:
+              - echo "Final"
 '''
 
 import yaml
