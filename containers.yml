@@ -38,6 +38,8 @@ dockerfiles:
     stages:
       - intermediate: 
          base: ubuntu:16.04
+         help: 
+           - Intermediate container help
          sections:
            - section:
              expose:
@@ -50,6 +52,8 @@ dockerfiles:
              env:
                - $environment_vars
       - final: 
-            base: intermediate
-            run:
-              - echo "Final"
+         base: intermediate
+         help: 
+           - Final container help
+         run:
+           - echo "Final"

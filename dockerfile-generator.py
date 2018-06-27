@@ -244,7 +244,9 @@ class RootGenerator(object):
 
         self.examples = dockerfile_config.get("examples", [])
         self.warning_folder_does_not_exist = False
-
+        # Create a new dockerfile with name like "Dockerfile.centos7"
+        self.dockerfile_filename = "Dockerfile.{0}".format(dockerfile_name)
+        
     def generate_dockerfile(self):
         '''
         Write a dockerfile for one of the containers in the YAML configuration file
@@ -254,9 +256,6 @@ class RootGenerator(object):
         '''
         dockerfile_name, dockerfile_config = self.dockerfile_name, self.dockerfile_config
 
-        # Create a new dockerfile with name like "Dockerfile.centos7"
-        self.dockerfile_name = "Dockerfile.{0}".format(dockerfile_name)
-        
         # A container contains one or more stage
         stages = dockerfile_config.get("stages", None)
         # "stages" is optional. I am forcing "stages" mode in all cases
@@ -266,7 +265,7 @@ class RootGenerator(object):
         
         _, container_stages = self.generate_dockerfile_stages(stages)
 
-        res, f = open_file(self.dockerfile_name, "w")
+        res, f = open_file(self.dockerfile_filename, "w")
         if not res:
             return False, None
         f.write(container_stages)
@@ -442,9 +441,9 @@ class RootGenerator(object):
     
     def generate_header(self, stage_config, stage_name):
         s_out = ""
-        s_out += "FROM {0} as {1}".format(stage_config["base"], stage_name)
         s_out += "\n# Automatically generated from {0}".format(os.path.abspath(config_file))
-        s_out += "\n"
+        s_out += "\nFROM {0} as {1}".format(stage_config["base"], stage_name)
+        s_out += ""
         return True, s_out
     
     def generate_entrypoint(self, stage_config):
@@ -483,7 +482,6 @@ class RootGenerator(object):
                 sections = [stage_config]
             _, stage_sections = self.generate_dockerfile_sections(stage_config, stage_name, sections)
 
-            print "stage_config", stage_config
             res, container_header = self.generate_header(stage_config, stage_name)
             res, container_entrypoint = self.generate_entrypoint(stage_config)
             # I can generate help and README only after I parsed the sections and collected
@@ -631,7 +629,7 @@ class RootGenerator(object):
             
         env_vars_help = self.get_user_help_env()
 
-        dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.dockerfile_name))
+        dockerfile_path = os.path.join(confile_file_folder, "{0}".format(self.dockerfile_filename))
         s_out += "  # Build the container. See https://docs.docker.com/engine/reference/commandline/build\n"
         s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.dockerfile_name, replace_home(dockerfile_path))
         s_out += "  # Run the previously built container. See https://docs.docker.com/engine/reference/commandline/run\n"
@@ -652,7 +650,7 @@ class RootGenerator(object):
         Print help and examples for the container
         '''
         s_out = ""
-        s_out += "Container '{0}' help:\n".format(self.dockerfile_name)
+        s_out += "Container '{0}' help:\n".format(self.dockerfile_filename)
         for help in self.dockerfile_config.get("help", []):
             s_out += "  {0}\n".format(help)
         s_out += self.get_user_help_commands()
@@ -670,7 +668,7 @@ class RootGenerator(object):
             volumes_help += " --volume {0}:{1}".format(volume.src, volume.dst)
         env_vars_help = self.get_user_help_env()
 
-        dockerfile_path = os.path.join(confile_file_folder, "Dockerfile.{0}".format(self.dockerfile_name))
+        dockerfile_path = os.path.join(confile_file_folder, "{0}".format(self.dockerfile_filename))
         s_out += "\n# sudo docker build --tag {0}:latest --file {1}  .".format(self.dockerfile_name, replace_home(dockerfile_path))
         s_out += "\n# sudo docker run --name {0} --tty --interactive  {1}{2} {0}:latest".format(self.dockerfile_name, volumes_help, env_vars_help)
         s_out += "\n# sudo docker start --interactive {0}".format(self.dockerfile_name)
@@ -843,8 +841,9 @@ if __name__ == '__main__':
 
         dockerfiles = data_map.get("dockerfiles", None)
         if not dockerfiles:
-            # backward compatibility
+            # backward compatibility, try "containers"
             dockerfiles = data_map.get("containers", None)
+
         if not dockerfiles:
             logger.info("No containers specified in the {0}".format(config_file))
             break
