@@ -434,7 +434,7 @@ class RootGenerator(object):
                     if not glob.glob(full_src_path1) and not glob.glob(full_src_path2) and not self.warning_folder_does_not_exist:
                         self.warning_folder_does_not_exist = True
                         logger.warning("Path {0} does not exist in the folder {1}\
-                         in the container {2}".format(src, confile_file_folder, self.container_name))
+                         in the container {2}".format(src, confile_file_folder, self.dockerfile_name))
                 else: 
                     logger.warning("Faled to parse COPY arguments {0}".format(w))
         return True, s_out
