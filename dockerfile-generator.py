@@ -416,7 +416,7 @@ class RootGenerator(object):
             env_var_publish = environment_variable.get("publish", False)
             for env_var_help_line in convert_to_list(env_var_help):
                 s_out += "\n# {0}".format(env_var_help_line)
-            s_out += "\nENV {0}".format(env_var_definition)
+            s_out += "\nENV {0}\n".format(env_var_definition)
             name, value = split_file_paths(env_var_definition)
             self.env_variables[name] = EnvironmentVariable(name, value, env_var_help, env_var_publish)
             
