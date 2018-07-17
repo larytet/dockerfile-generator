@@ -408,7 +408,10 @@ class RootGenerator(object):
             env_var_help = environment_variable.get("help", "")
             env_var_publish = environment_variable.get("publish", False)
             if env_var_help:
-                s_out += "\n# {0}".format(env_var_help)
+                if (type(env_var_help) != list):
+                    env_var_help = [env_var_help]
+                for env_var_help_line in env_var_help:
+                    s_out += "\n# {0}".format(env_var_help_line)
             s_out += "\nENV {0}".format(env_var_definition)
             name, value = split_file_paths(env_var_definition)
             self.env_variables[name] = EnvironmentVariable(name, value, env_var_help, env_var_publish)
@@ -778,15 +781,15 @@ class RootGenerator(object):
             for line in help:
                 help_lines += "# " + line + "\\n"
                 if not self.build_trace_disable:
-                    first, c = self.generate_command_chain(first, " `# {1}` && \\\n\tmkdir -p {2} && \\\n\techo -e \'{0}\' > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
+                    first, c = self.generate_command_chain(first, " `# {1}` && \\\n\tmkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
                     commands_concatenated += c
                 else:
-                    first, c = self.generate_command_chain(first, "  mkdir -p {2} && \\\n\techo -e \'{0}\' > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
+                    first, c = self.generate_command_chain(first, "  mkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
                     commands_concatenated += c
             for line in shell["lines"]:
                 words = process_macro(line)
                 for w in words:
-                    first, c = self.generate_command_chain(first, " echo \'{0}\' >> {1}".format(w, filename),  " && \\\n\t")
+                    first, c = self.generate_command_chain(first, " echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
                     commands_concatenated += c
             if set_executable:
                 first, c = self.generate_command_chain(first, " chmod +x {0}".format(filename),  " && \\\n\t")
