@@ -178,6 +178,11 @@ def find_folder(folder, default_res=None):
 
     return default_res
 
+def convert_to_list(v):
+    if (type(v) != list):
+        v = [v]
+    return v
+
 def split_file_paths(s):
     '''
     I do not support all legal file paths here
@@ -408,9 +413,7 @@ class RootGenerator(object):
             env_var_help = environment_variable.get("help", "")
             env_var_publish = environment_variable.get("publish", False)
             if env_var_help:
-                if (type(env_var_help) != list):
-                    env_var_help = [env_var_help]
-                for env_var_help_line in env_var_help:
+                for env_var_help_line in convert_to_list(env_var_help):
                     s_out += "\n# {0}".format(env_var_help_line)
             s_out += "\nENV {0}".format(env_var_definition)
             name, value = split_file_paths(env_var_definition)
