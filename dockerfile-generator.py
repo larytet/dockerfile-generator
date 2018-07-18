@@ -372,9 +372,16 @@ class RootGenerator(object):
             commands_concatenated = "\nRUN `# Execute commands` && set -x"
         first = True        
         for command in commands:
+            if command.startswith("comment "):
+                command = command.split(" ", 1)[1]
+                first, c = self.generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
+                commands_concatenated += c
+                continue
+                
             if not ' ' in command:
+                # A single word command, probably a macro, echo trace
                 if not self.build_trace_disable:
-                    first, c = self.generate_command_chain(first, " `# {0}`".format(command),  " && \\\n")
+                    first, c = self.generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
                     commands_concatenated += c
                         
             words = process_macro(command)
