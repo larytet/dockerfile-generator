@@ -422,12 +422,18 @@ class RootGenerator(object):
             
         return True, s_out
     
+    def generate_dockerfile_copy_f(self, section_config):
+        return self.generate_dockerfile_copy_do(section_config, "copy_f", True)
+
     def generate_dockerfile_copy(self, section_config):
+        return self.generate_dockerfile_copy_do(section_config, "copy", False)
+        
+    def generate_dockerfile_copy_do(self, section_config, key, skip_check):
         '''
         Handle YAML 'add' - COPY command in the Dockerfile
         '''
         s_out = ""
-        files = section_config.get("copy", None)
+        files = section_config.get(key, None)
         if not files:
             return False, ""
         for file in files:
@@ -438,7 +444,7 @@ class RootGenerator(object):
                     s_out += '\nCOPY "{0}" "{1}"'.format(src, dst)
                     full_src_path1 = os.path.join(confile_file_folder, os.path.basename(src))
                     full_src_path2 = os.path.join(confile_file_folder, src)
-                    if not glob.glob(full_src_path1) and not glob.glob(full_src_path2) and not self.warning_folder_does_not_exist:
+                    if not glob.glob(full_src_path1) and not glob.glob(full_src_path2) and not self.warning_folder_does_not_exist and not skip_check:
                         self.warning_folder_does_not_exist = True
                         logger.warning("Path {0} does not exist in the folder {1}\
                          in the container {2}".format(src, confile_file_folder, self.dockerfile_name))
@@ -521,6 +527,7 @@ class RootGenerator(object):
                       self.generate_dockerfile_env_extended,           
                       self.generate_dockerfile_volume, 
                       self.generate_dockerfile_copy, 
+                      self.generate_dockerfile_copy_f, 
                       self.generate_shell,
                       self.generate_dockerfile_packages,          
                       self.generate_file,
