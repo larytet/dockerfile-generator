@@ -800,15 +800,10 @@ class RootGenerator(object):
                 collection.append(GeneratedFile(filename, help, publish))
             first, c = self.generate_command_chain(first, "mkdir -p \"{0}\"".format(dirname),  " && \\\n\t")
             commands_concatenated += c
-            help_lines = ""
             for line in help:
-                line += "# " + line + "\\n"
-                if not self.build_trace_disable:
-                    first, c = self.generate_command_chain(first, "`# {1}` && \\\n\t \\\n\techo -e \"{0}\" > {1}".format(line, filename),  " && \\\n\t")
-                    commands_concatenated += c
-                else:
-                    first, c = self.generate_command_chain(first, "echo -e \"{0}\" > {1}\t".format(line, filename),  " && \\\n\t")
-                    commands_concatenated += c
+                line = "# " + line + "\\n"
+                first, c = self.generate_command_chain(first, "echo -e \"{0}\" > {1}".format(line, filename),  " && \\\n\t")
+                commands_concatenated += c
             for line in shell["lines"]:
                 words = process_macro(line)
                 for w in words:
