@@ -784,7 +784,7 @@ class RootGenerator(object):
             return False, ""
     
         if not self.build_trace_disable:
-            commands_concatenated = "\nRUN `# Generate files` && set -x"
+            commands_concatenated = "\nRUN `# Generate files` && set -x && "
         else:
             commands_concatenated = "\nRUN "
         first = True
@@ -798,7 +798,10 @@ class RootGenerator(object):
             
             if collection != None:
                 collection.append(GeneratedFile(filename, help, publish))
-            first, c = self.generate_command_chain(first, "mkdir -p \"{0}\"".format(dirname),  " && \\\n\t")
+            if not self.build_trace_disable:
+                first, c = self.generate_command_chain(first, "`# Generating {0}` mkdir -p \"{1}\"".format(filename, dirname),  " && \\\n\t")
+            else:
+                first, c = self.generate_command_chain(first, "mkdir -p \"{0}\"".format(dirname),  " && \\\n\t")
             commands_concatenated += c
             for line in help:
                 line = "# " + line + "\\n"
