@@ -798,22 +798,24 @@ class RootGenerator(object):
             
             if collection != None:
                 collection.append(GeneratedFile(filename, help, publish))
+            first, c = self.generate_command_chain(first, "mkdir -p \"{0}\"".format(dirname),  " && \\\n\t")
+            commands_concatenated += c
             help_lines = ""
             for line in help:
-                help_lines += "# " + line + "\\n"
+                line += "# " + line + "\\n"
                 if not self.build_trace_disable:
-                    first, c = self.generate_command_chain(first, " `# {1}` && \\\n\tmkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
+                    first, c = self.generate_command_chain(first, "`# {1}` && \\\n\t \\\n\techo -e \"{0}\" > {1}".format(line, filename),  " && \\\n\t")
                     commands_concatenated += c
                 else:
-                    first, c = self.generate_command_chain(first, "  mkdir -p {2} && \\\n\techo -e \"{0}\" > {1}".format(help_lines, filename, dirname),  " && \\\n\t")
+                    first, c = self.generate_command_chain(first, "echo -e \"{0}\" > {1}\t".format(line, filename),  " && \\\n\t")
                     commands_concatenated += c
             for line in shell["lines"]:
                 words = process_macro(line)
                 for w in words:
-                    first, c = self.generate_command_chain(first, " echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
+                    first, c = self.generate_command_chain(first, "echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
                     commands_concatenated += c
             if set_executable:
-                first, c = self.generate_command_chain(first, " chmod +x {0}".format(filename),  " && \\\n\t")
+                first, c = self.generate_command_chain(first, "chmod +x {0}".format(filename),  " && \\\n\t")
                 commands_concatenated += c
         s_out += commands_concatenated
         return True, s_out
