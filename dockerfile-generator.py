@@ -423,15 +423,18 @@ class RootGenerator(object):
         return True, s_out
     
     def generate_dockerfile_copy_f(self, section_config):
+        '''
+        Handle YAML 'copy_f' - COPY command in the Dockerfile
+        '''
         return self.generate_dockerfile_copy_do(section_config, "copy_f", True)
 
     def generate_dockerfile_copy(self, section_config):
+        '''
+        Handle YAML 'copy' - COPY command in the Dockerfile
+        '''
         return self.generate_dockerfile_copy_do(section_config, "copy", False)
         
     def generate_dockerfile_copy_do(self, section_config, key, skip_check):
-        '''
-        Handle YAML 'add' - COPY command in the Dockerfile
-        '''
         s_out = ""
         files = section_config.get(key, None)
         if not files:
