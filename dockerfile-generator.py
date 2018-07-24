@@ -659,8 +659,8 @@ class RootGenerator(object):
         s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.dockerfile_name, replace_home(dockerfile_path))
         s_out += "  # Run the previously built container. See https://docs.docker.com/engine/reference/commandline/run\n"
         # I need --init to handle signals like Ctrl-c see https://github.com/moby/moby/issues/2838 
-        s_out += "  sudo docker run --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(self.dockerfile_name, volumes_help, ports_help, env_vars_help)
-        s_out += "  # Start the previously run container\n"
+        s_out += "  sudo docker run --rm --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(self.dockerfile_name, volumes_help, ports_help, env_vars_help)
+        s_out += "  # Start the previously run container (if run without --rm)\n"
         s_out += "  sudo docker start --interactive {0}\n".format(self.dockerfile_name)
         s_out += "  # Connect to a running container\n"
         s_out += "  sudo docker exec --interactive --tty {0} /bin/bash\n".format(self.dockerfile_name)
@@ -697,7 +697,7 @@ class RootGenerator(object):
         dockerfile_path = os.path.join(confile_file_folder, "{0}".format(self.dockerfile_filename))
         s_out += "\n# sudo docker build --tag {0}:latest --file {1}  .".format(self.dockerfile_name, replace_home(dockerfile_path))
         # I need --init to handle signals like Ctrl-c see https://github.com/moby/moby/issues/2838 
-        s_out += "\n# sudo docker run --name {0} --init --tty --interactive  {1}{2} {0}:latest".format(self.dockerfile_name, volumes_help, env_vars_help)
+        s_out += "\n# sudo docker run --rm --name {0} --init --tty --interactive  {1}{2} {0}:latest".format(self.dockerfile_name, volumes_help, env_vars_help)
         s_out += "\n# sudo docker start --interactive {0}".format(self.dockerfile_name)
         exmaples = dockerfile_config.get("examples", [])
         if exmaples:
