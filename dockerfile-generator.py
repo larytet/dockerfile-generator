@@ -92,7 +92,7 @@ import socket
 import string
 import collections 
 
-def open_file(filename, flags):
+def open_file(filename, flags, print_error=True):
     '''
     Open a text file 
     Returns handle to the open file and result code False/True
@@ -100,8 +100,9 @@ def open_file(filename, flags):
     try:
         file_handle = open(filename, flags) 
     except Exception:
-        print sys.exc_info()
-        logger.error('Failed to open file {0}'.format(filename))
+        if print_error:
+            print sys.exc_info()
+            logger.error('Failed to open file {0}'.format(filename))
         return (False, None)
     else:
         return (True, file_handle)    
@@ -220,7 +221,7 @@ def split_env_definition(s):
 def get_docker_config():
     filenames = ["/etc/docker/daemon.json"]
     for filename in filenames:
-        res, f = open_file(filename, "r")
+        res, f = open_file(filename, "r", False)
         if res:
             lines = f.readlines()
             return True, filename, lines
@@ -891,5 +892,7 @@ if __name__ == '__main__':
         res, filename, docker_config = get_docker_config()
         if res:
             logger.info("{0}:{1}".format(filename, docker_config))
+        else:
+            logger.warning("Failed to open /etc/docker/daemon.json for reading")
 
         break
