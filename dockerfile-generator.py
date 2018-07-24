@@ -810,8 +810,13 @@ class RootGenerator(object):
             for line in shell["lines"]:
                 words = process_macro(line)
                 for w in words:
-                    first, c = self.generate_command_chain(first, "echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
-                    commands_concatenated += c
+                    if w.startswith("comment "):
+                        w = w.split(" ", 1)[1]
+                        first, c = self.generate_command_chain(first, "`# {0}`".format(w),  " && \\\n\t")
+                        commands_concatenated += c
+                    else:
+                        first, c = self.generate_command_chain(first, "echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
+                        commands_concatenated += c
             if set_executable:
                 first, c = self.generate_command_chain(first, "chmod +x {0}".format(filename),  " && \\\n\t")
                 commands_concatenated += c
