@@ -707,6 +707,8 @@ class RootGenerator(object):
         res, filename, docker_config = get_docker_config()
         if res:
             s_out += "\n# Docker configuration:{0}".format(docker_config)
+        else:
+            s_out += "\n# Docker configuration is not found"
         s_out += "\n"
         
         return True, s_out
