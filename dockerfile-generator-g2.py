@@ -137,13 +137,8 @@ class RootGenerator(object):
         object.__init__(RootGenerator)
         self.config_filename, self.data_map = config_filename, data_map
         self.dockerfiles = []
+        self.stages = []
 
-    def get_dockerfiles(self):
-        '''
-        return a list of found containers definitions
-        '''
-        return self.dockerfiles
-    
     def do(self):
         res = False
         dockerfile_contents = []
@@ -187,10 +182,22 @@ class RootGenerator(object):
         # and handling the YAML using the same function 
         if not stages:
             stages = [{None:dockerfile_config}]
-        
+
+        for stage in stages:
+            res, dockerfile_content_stage = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config)
+            if not res:
+                break
+            dockerfile_content += dockerfile_content_stage
+            self.stages.append(stage)            
         dockerfile_help = self.__get_user_help(dockerfile_name, dockerfile_config)
 
         return res, DockerfileContent(dockerfile_help, dockerfile_content)
+        
+    def __do_dockerfile_stage(self, dockerfile_name, dockerfile_config):
+        res = False
+        dockerfile_stage_content = ""
+        dockerfile_stage_help = ""
+        return res, DockerfileContent(dockerfile_stage_help, dockerfile_stage_content)
         
         
 def show_help(data_map):

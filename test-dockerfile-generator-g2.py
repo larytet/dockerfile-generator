@@ -21,7 +21,8 @@ def test_no_containers():
     root_generator = dockerfile_generator.RootGenerator("test", data_map)
     res, str = root_generator.do()
     assert(not res)
-    assert(len(root_generator.get_dockerfiles()) == 0)
+    assert(len(root_generator.dockerfiles) == 0)
+    assert(len(root_generator.stages) == 0)
     
 def test_containers():
     str_io = StringIO.StringIO("""containers:
@@ -34,5 +35,37 @@ def test_containers():
     root_generator = dockerfile_generator.RootGenerator("test", data_map)
     res, str = root_generator.do()
     assert(not res)    
-    assert(len(root_generator.get_dockerfiles()) == 2)
+    assert(len(root_generator.dockerfiles) == 2)
+    assert(len(root_generator.stages) == 1)
+   
+def test_containers1():
+    str_io = StringIO.StringIO("""dockerfiles:
+                                    c1:
+                                      packager: rpm
+                                    c2:
+                                      packager: rpm
+                               """)
+    data_map = yaml.safe_load(str_io)
+    root_generator = dockerfile_generator.RootGenerator("test", data_map)
+    res, str = root_generator.do()
+    assert(not res)    
+    assert(len(root_generator.dockerfiles) == 2)
+    assert(len(root_generator.stages) == 1)
+    
+def test_stages():
+    str_io = StringIO.StringIO("""dockerfiles:
+                                    c1:
+                                      packager: rpm
+                                      stages:
+                                        - s1: 
+                                        - s2: 
+                                    c2:
+                                      packager: rpm
+                               """)
+    data_map = yaml.safe_load(str_io)
+    root_generator = dockerfile_generator.RootGenerator("test", data_map)
+    res, str = root_generator.do()
+    assert(not res)    
+    assert(len(root_generator.dockerfiles) == 2)
+    assert(len(root_generator.stages) == 2)
     
