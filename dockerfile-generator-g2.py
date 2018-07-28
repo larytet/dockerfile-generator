@@ -128,6 +128,7 @@ def match_macro(macros, token):
             logger.warning("Macro '{0}' not found. Skip macro substitution".format(token))
     return [token]
 
+DockerfileContent = collections.namedtuple('DockerfileContent', ['help', 'content'])
 class RootGenerator(object):
     '''
     One object of this type for every Dockerfile
@@ -145,7 +146,7 @@ class RootGenerator(object):
     
     def do(self):
         res = False
-        output_string = ""
+        dockerfile_contents = []
         while True:
             dockerfiles = self.data_map.get("dockerfiles", None)
         
@@ -156,12 +157,41 @@ class RootGenerator(object):
             if not dockerfiles:
                 logger.info("No containers specified in the '{0}'".format(self.config_filename))
                 break
-            
             self.dockerfiles = dockerfiles
-
+            for dockerfile_name, dockerfile_config in dockerfiles.items():
+                res, dockerfile_content = self.__do_dockerfile(dockerfile_name, dockerfile_config)
+                dockerfile_contents.append(dockerfile_content)
             break
             
-        return res, output_string
+        return res, dockerfile_contents
+
+    def __get_user_help(self, dockerfile_name, dockerfile_config):
+        '''
+        Print help and examples for the container
+        '''
+        s_out = ""
+        return s_out        
+    
+    def __do_dockerfile(self, dockerfile_name, dockerfile_config):
+        '''
+        Generate a dockerfile for one of the dockerfiles definitons in the YAML configuration file
+        2. build different parts of the Dockerfile 
+        3. output the collected string to the Dockerfile  
+        '''
+        res = False
+        dockerfile_content = ""
+        dockerfile_help = ""
+        # A container contains one or more stage
+        stages = dockerfile_config.get("stages", None)
+        # "stages" is optional. I am forcing "stages" mode in all cases
+        # and handling the YAML using the same function 
+        if not stages:
+            stages = [{None:dockerfile_config}]
+        
+        dockerfile_help = self.__get_user_help(dockerfile_name, dockerfile_config)
+
+        return res, DockerfileContent(dockerfile_help, dockerfile_content)
+        
         
 def show_help(data_map):
     for help in data_map.get("help", []):
