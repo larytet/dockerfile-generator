@@ -144,7 +144,7 @@ class RootGenerator(object):
         
             if not dockerfiles:
                 # backward compatibility, try "containers"
-                dockerfiles = data_map.get("containers", None)
+                dockerfiles = self.data_map.get("containers", None)
 
             if not dockerfiles:
                 logger.info("No containers specified in the {0}".format(config_file))
