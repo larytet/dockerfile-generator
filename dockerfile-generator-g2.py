@@ -130,9 +130,6 @@ def match_macro(macros, token):
 
 
 if __name__ == '__main__':
-    '''
-    This is an emulation of staprun logic minus insmod, stapio, access rights
-    '''
     arguments = docopt(__doc__, version='0.1')
     logging.basicConfig()    
     logger = logging.getLogger('dockerfile_generator')
