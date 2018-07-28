@@ -135,15 +135,22 @@ class RootGenerator(object):
     def __init__(self, data_map):
         object.__init__(RootGenerator)
         self.data_map = data_map
-        dockerfiles = data_map.get("dockerfiles", None)
+            
+    def do(self):
+        res = False
+        output_string = ""
+        while True:
+            dockerfiles = self.data_map.get("dockerfiles", None)
         
-        if not dockerfiles:
-            # backward compatibility, try "containers"
-            dockerfiles = data_map.get("containers", None)
+            if not dockerfiles:
+                # backward compatibility, try "containers"
+                dockerfiles = data_map.get("containers", None)
 
-        if not dockerfiles:
-            logger.info("No containers specified in the {0}".format(config_file))
-            break
+            if not dockerfiles:
+                logger.info("No containers specified in the {0}".format(config_file))
+                break
+            
+        return res, output_string
         
 def show_help(data_map):
     for help in data_map.get("help", []):
