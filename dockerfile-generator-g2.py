@@ -132,10 +132,17 @@ class RootGenerator(object):
     '''
     One object of this type for every Dockerfile
     '''  
-    def __init__(self, data_map):
+    def __init__(self, config_filename, data_map):
         object.__init__(RootGenerator)
-        self.data_map = data_map
-            
+        self.config_filename, self.data_map = config_filename, data_map
+        self.dockerfiles = []
+
+    def get_dockerfiles(self):
+        '''
+        return a list of found containers definitions
+        '''
+        return self.dockerfiles
+    
     def do(self):
         res = False
         output_string = ""
@@ -147,8 +154,12 @@ class RootGenerator(object):
                 dockerfiles = self.data_map.get("containers", None)
 
             if not dockerfiles:
-                logger.info("No containers specified in the {0}".format(config_file))
+                logger.info("No containers specified in the '{0}'".format(self.config_filename))
                 break
+            
+            self.dockerfiles = dockerfiles
+
+            break
             
         return res, output_string
         
