@@ -36,7 +36,7 @@ def test_containers():
     res, str = root_generator.do()
     assert(not res)    
     assert(len(root_generator.dockerfiles) == 2)
-    assert(len(root_generator.stages) == 1)
+    assert(len(root_generator.stages) == 2)
    
 def test_containers1():
     str_io = StringIO.StringIO("""dockerfiles:
@@ -50,7 +50,7 @@ def test_containers1():
     res, str = root_generator.do()
     assert(not res)    
     assert(len(root_generator.dockerfiles) == 2)
-    assert(len(root_generator.stages) == 1)
+    assert(len(root_generator.stages) == 2)
     
 def test_stages():
     str_io = StringIO.StringIO("""dockerfiles:
@@ -67,5 +67,5 @@ def test_stages():
     res, str = root_generator.do()
     assert(not res)    
     assert(len(root_generator.dockerfiles) == 2)
-    assert(len(root_generator.stages) == 2)
+    assert(len(root_generator.stages) == 3)
     

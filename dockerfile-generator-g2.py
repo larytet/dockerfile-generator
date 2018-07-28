@@ -183,12 +183,12 @@ class RootGenerator(object):
         if not stages:
             stages = [{None:dockerfile_config}]
 
+        self.stages += stages
         for stage in stages:
             res, dockerfile_content_stage = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config)
             if not res:
                 break
             dockerfile_content += dockerfile_content_stage
-            self.stages.append(stage)            
         dockerfile_help = self.__get_user_help(dockerfile_name, dockerfile_config)
 
         return res, DockerfileContent(dockerfile_help, dockerfile_content)
