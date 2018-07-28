@@ -837,9 +837,6 @@ def show_help(data_map):
         print("{0}".format(help))
 
 if __name__ == '__main__':
-    '''
-    This is an emulation of staprun logic minus insmod, stapio, access rights
-    '''
     arguments = docopt(__doc__, version='0.1')
     logging.basicConfig()    
     logger = logging.getLogger('dockerfile_generator')
