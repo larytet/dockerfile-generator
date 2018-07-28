@@ -128,6 +128,26 @@ def match_macro(macros, token):
             logger.warning("Macro '{0}' not found. Skip macro substitution".format(token))
     return [token]
 
+class RootGenerator(object):
+    '''
+    One object of this type for every Dockerfile
+    '''  
+    def __init__(self, data_map):
+        object.__init__(RootGenerator)
+        self.data_map = data_map
+        dockerfiles = data_map.get("dockerfiles", None)
+        
+        if not dockerfiles:
+            # backward compatibility, try "containers"
+            dockerfiles = data_map.get("containers", None)
+
+        if not dockerfiles:
+            logger.info("No containers specified in the {0}".format(config_file))
+            break
+        
+def show_help(data_map):
+    for help in data_map.get("help", []):
+        print("{0}".format(help))
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='0.1')
@@ -155,3 +175,8 @@ if __name__ == '__main__':
       
         # parse the YAML file specified by --config flag 
         data_map = yaml.safe_load(f)
+        root_generator = RootGenerator(data_map)
+        if not arguments["--disable_help"]:
+            show_help(data_map)
+        
+        break
