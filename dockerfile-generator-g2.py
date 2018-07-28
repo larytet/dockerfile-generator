@@ -185,7 +185,9 @@ class RootGenerator(object):
 
         self.stages += stages
         for stage in stages:
-            res, dockerfile_content_stage = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config)
+            # 'stage' is a dictionary with one entry
+            stage_name, stage_config = stage.popitem()
+            res, dockerfile_content_stage = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config, stage_name, stage_config)
             if not res:
                 break
             dockerfile_content += dockerfile_content_stage
@@ -193,10 +195,39 @@ class RootGenerator(object):
 
         return res, DockerfileContent(dockerfile_help, dockerfile_content)
         
-    def __do_dockerfile_stage(self, dockerfile_name, dockerfile_config):
+    def __do_dockerfile_stage(self, dockerfile_name, dockerfile_config, stage_name, stage_config):
         res = False
         dockerfile_stage_content = ""
         dockerfile_stage_help = ""
+
+        dockerfile_stage_content += __get_stage_comment(dockerfile_config, stage_name) 
+        if not self.comments_disable:
+            if stage_name: s_out += "\n# Stage {0} ({1})".format(stage_name, stage_idx)
+            stage_idx += 1 
+            sections = stage_config.get("sections", None)
+            if not sections:
+                sections = [stage_config]
+            _, stage_sections = self.generate_dockerfile_sections(stage_config, stage_name, sections)
+
+            res, container_header = self.generate_header(stage_config, stage_name)
+            res, container_entrypoint = self.generate_entrypoint(stage_config)
+            # I can generate help and README only after I parsed the sections and collected
+            # all volumes etc
+            _, container_help = True, "" # self.generate_container_help()
+            _, container_readme = self.generate_container_readme()
+    
+            if not self.help_disable:
+                s_out += container_help
+                s_out += "\n"
+            s_out += container_header
+            s_out += "\n"
+            if not self.readme_disable:
+                s_out += "RUN set +x && `# Generate README file` && \
+                    echo -e '{0}' > README".format(container_readme)
+            s_out += container_entrypoint
+            s_out += stage_sections
+        
+        
         return res, DockerfileContent(dockerfile_stage_help, dockerfile_stage_content)
         
         
