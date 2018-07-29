@@ -86,6 +86,7 @@ import sys
 import os
 import re
 try:
+    from ruamel.yaml import YAML
     from docopt import docopt
 except:
     print "Try pip install -r requirements.txt"
@@ -198,16 +199,19 @@ class RootGenerator(object):
 
         return res, DockerfileContent(dockerfile_help, dockerfile_content)
         
+    def __get_comment(self, dockerfile_config, fmt, *args):
+        if dockerfile_config.get("comments_disable", False):
+            return ""
+        return fmt.format(*args)
+        
+        
     def __do_dockerfile_stage(self, dockerfile_name, dockerfile_config, stage_name, stage_config):
         res = False
         dockerfile_stage_content = ""
         dockerfile_stage_help = ""
-        stage_idx = 0
 
         if not dockerfile_config.get("comments_disable", False):
-            if stage_name: dockerfile_stage_content += "\n# Stage {0} ({1})".format(stage_name, stage_idx)
-            stage_idx += 1 
-        
+            dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# Stage {0} {1}", stage_name, stage_config.ca.comment)
         
         return res, DockerfileContent(dockerfile_stage_help, dockerfile_stage_content)
         
@@ -241,7 +245,8 @@ if __name__ == '__main__':
         confile_file_folder = os.path.dirname(confile_file_abspath)
       
         # parse the YAML file specified by --config flag 
-        data_map = yaml.safe_load(f)
+        yaml=YAML(typ='rt') 
+        data_map = yaml.load(f)
         root_generator = RootGenerator(data_map)
         if not arguments["--disable_help"]:
             show_help(data_map)

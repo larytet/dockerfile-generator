@@ -57,15 +57,49 @@ def test_containers1():
     assert(len(root_generator.dockerfiles) == 2)
     assert(len(root_generator.stages) == 2)
     
-def test_stages():
-    root_generator = load_yaml("""dockerfiles:
-                                    c1:
+def test_all():
+    root_generator = load_yaml("""
+                                  macros:
+                                   get_release:
+                                    - cat /etc/*release
+                                    - gcc --version
+                                  
+                                   build_essential_centos:
+                                    - gcc 
+                                    - gcc-c++ 
+                                    - make
+                                   
+                                   make_dir:
+                                    - mkdir -p /etc/docker
+                                   
+                                   environment_vars:
+                                     # I need an env variable referencing a persistent folder
+                                     - SHARED_FOLDER /etc/docker  
+                                  
+                                  dockerfiles:                                  
+                                    centos7:
+                                      base: centos:centos7
                                       packager: rpm
-                                      stages:
-                                        - s1: 
-                                        - s2: 
-                                    c2:
-                                      packager: rpm
+                                    ubuntu.16.04:
+                                      packager: deb
+                                      stages:   # I nees multiple stages test
+                                        - intermediate: # base stage
+                                           base: ubuntu:16.04
+                                           sections:
+                                             - section:
+                                               expose:
+                                                 - 8080/TCP
+                                               install:
+                                                 - build-essential    
+                                             - section:
+                                               run:
+                                                 - $get_release
+                                               env:
+                                                 - $environment_vars
+                                        - final: # final stage
+                                              base: intermediate
+                                              run:
+                                                - echo "Final"
                                """)
     res, str = root_generator.do()
     assert(not res)    
