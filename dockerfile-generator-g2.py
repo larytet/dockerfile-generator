@@ -708,7 +708,7 @@ def get_user_help(data_map, root_generator):
     '''
     s_out = ""
     for content in root_generator.dockerfile_contents:
-        s_out += "Container '{0}' help:\n".format(content.name)
+        s_out += "\nContainer '{0}' help:".format(content.name)
         s_out += "  {0}\n".format(dockerfile_content.help)
         s_out += get_user_help_commands(data_map, root_generator, content)
             #s_out += get_user_help_shells()
