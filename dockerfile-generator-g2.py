@@ -86,7 +86,12 @@ import logging
 import sys
 import os
 import re
-from docopt import docopt
+try:
+    from docopt import docopt
+    from ruamel.yaml import YAMEL
+except:
+    print "Try pip install -r requirements.txt"
+    exit(1)    
 import glob
 import socket
 import string
