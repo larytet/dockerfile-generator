@@ -81,7 +81,6 @@ dockerfiles:
               - echo "Final"
 '''
 
-import yaml
 import logging
 import sys
 import os
