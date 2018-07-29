@@ -155,7 +155,7 @@ def get_yaml_comment(obj):
     comment = obj.ca.comment[0]
     if not comment:
         return ""
-    return comment.value
+    return "'{0}'".format(comment.value[1:].strip())
             
         
 
@@ -246,7 +246,6 @@ class RootGenerator(object):
         sections = stage_config.get("sections", None)
         if not sections:
             sections = [stage_config]
-        print "sections", sections
         for section_config in sections:
             res, dockerfile_stage_section_content = self.__do_dockerfile_stage_section(dockerfile_name, dockerfile_config, stage_name, stage_config, section_config)
             if not res:
