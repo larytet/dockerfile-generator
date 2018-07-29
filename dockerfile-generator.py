@@ -697,7 +697,8 @@ def get_user_help_env(root_generator, dockerfile_name):
 def save_dockerfile(dockerfile_content):
     res, f = open_file(get_dockerfile_path(dockerfile_content.name), "w")
     if not res:
-        return 
+        return
+    f.write("# Generate dynamically using https://github.com/larytet/dockerfile-generator\n")
     f.write(dockerfile_content.content)
     f.close()
 
