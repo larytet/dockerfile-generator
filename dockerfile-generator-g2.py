@@ -151,6 +151,14 @@ def split_env_definition(s):
 def generate_section_separator():
     return "\n" 
 
+def get_yaml_comment(obj):
+    comment = obj.ca.comment[0]
+    if not comment:
+        return ""
+    return comment.value
+            
+        
+
 DockerfileContent = collections.namedtuple('DockerfileContent', ['help', 'content'])
 VolumeDefinitions = collections.namedtuple('VolumeDefinitions', ['src', 'dst', 'abs_path'])
 ExposedPort = collections.namedtuple('ExposedPort', ['port', 'protocol'])
@@ -209,15 +217,12 @@ class RootGenerator(object):
         dockerfile_help = ""
         # A container contains one or more stage
         stages = dockerfile_config.get("stages", None)
-        # "stages" is optional. I am forcing "stages" mode in all cases
-        # and handling the YAML using the same function 
         if not stages:
-            stages = [{"anonymous":dockerfile_config}]
+            stages = [{None:dockerfile_config}]
 
         self.stages += stages
         for stage in stages:
-            # 'stage' is a dictionary with one entry
-            stage_name, stage_config = stage.popitem()
+            stage_name, stage_config = stage.popitem() 
             res, dockerfile_stage_content = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config, stage_name, stage_config)
             if not res:
                 break
@@ -236,12 +241,14 @@ class RootGenerator(object):
         dockerfile_stage_content = ""
         dockerfile_stage_help = ""
 
-        dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# Stage {0} {1}", stage_name, stage_config.ca.comment[0])
+        if stage_name:
+            dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# Stage {0} {1}", stage_name, get_yaml_comment(stage_config))
         sections = stage_config.get("sections", None)
         if not sections:
             sections = [stage_config]
-        for sections_config in sections:
-            res, dockerfile_stage_section_content = self.__do_dockerfile_stage_section(dockerfile_name, dockerfile_config, stage_name, stage_config, sections_config)
+        print "sections", sections
+        for section_config in sections:
+            res, dockerfile_stage_section_content = self.__do_dockerfile_stage_section(dockerfile_name, dockerfile_config, stage_name, stage_config, section_config)
             if not res:
                 break
             dockerfile_stage_content += dockerfile_stage_section_content
@@ -262,7 +269,7 @@ class RootGenerator(object):
         
         s_out = ""
         if section_config.ca.comment:
-            s_out += self.__get_comment(dockerfile_config, "\n# Section {0}", section_config.ca.comment)
+            s_out += self.__get_comment(dockerfile_config, "\n# Section {0}", get_yaml_comment(section_config))
         for generator in generators:
             res, s_tmp = generator(dockerfile_name, dockerfile_config, stage_name, stage_config, section_config)
             # print a separator after non-empty blocks

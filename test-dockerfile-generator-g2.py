@@ -92,7 +92,7 @@ def test_all():
                                                  - 8080/TCP
                                                install:
                                                  - build-essential    
-                                             - section: # seciond section
+                                             - section: # second section
                                                run:
                                                  - $get_release
                                                env:
