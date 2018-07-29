@@ -234,9 +234,8 @@ GeneratedFile = collections.namedtuple('GeneratedFile', ['filename', 'help', 'pu
 EnvironmentVariable = collections.namedtuple('EnvironmentVariable', ['name', 'value', 'help', 'publish'])
 class RootGenerator(object):
     '''
-    This is a parser
-    Read a YAML file
-    generate Dockerfile content 
+    This is a translator
+    Get a parsed YAML (data map), generate Dockerfile content 
     '''
     def __init__(self, data_map):
         object.__init__(RootGenerator)
