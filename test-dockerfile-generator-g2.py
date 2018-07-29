@@ -22,7 +22,7 @@ def test_init():
 def load_yaml(str):    
     yaml=YAML(typ='rt') 
     data_map = yaml.load(str)
-    root_generator = dockerfile_generator.RootGenerator("test", data_map)
+    root_generator = dockerfile_generator.RootGenerator(data_map)
     return root_generator
 
 def test_no_containers():
@@ -42,7 +42,7 @@ def test_containers():
                                       packager: rpm
                                """)
     res, str = root_generator.do()
-    assert(not res)    
+    assert(res)    
     assert(len(root_generator.dockerfiles) == 2)
     assert(len(root_generator.stages) == 2)
    
@@ -54,7 +54,7 @@ def test_containers1():
                                       packager: rpm
                                """)
     res, str = root_generator.do()
-    assert(not res)    
+    assert(res)    
     assert(len(root_generator.dockerfiles) == 2)
     assert(len(root_generator.stages) == 2)
     
@@ -106,5 +106,4 @@ def test_all():
     assert(res)  
     for dockerfile_content in content:   
         print dockerfile_content.content
-    assert(False)
     

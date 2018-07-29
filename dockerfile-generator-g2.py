@@ -156,10 +156,8 @@ def get_yaml_comment(obj):
     if not comment:
         return ""
     return "'{0}'".format(comment.value[1:].strip())
-            
-        
 
-DockerfileContent = collections.namedtuple('DockerfileContent', ['help', 'content'])
+DockerfileContent = collections.namedtuple('DockerfileContent', ['name', 'help', 'content'])
 VolumeDefinitions = collections.namedtuple('VolumeDefinitions', ['src', 'dst', 'abs_path'])
 ExposedPort = collections.namedtuple('ExposedPort', ['port', 'protocol'])
 GeneratedFile = collections.namedtuple('GeneratedFile', ['filename', 'help', 'publish'])
@@ -168,9 +166,9 @@ class RootGenerator(object):
     '''
     One object of this type for every Dockerfile
     '''  
-    def __init__(self, config_filename, data_map):
+    def __init__(self, data_map):
         object.__init__(RootGenerator)
-        self.config_filename, self.data_map = config_filename, data_map
+        self.data_map = data_map
         self.dockerfiles = []
         self.stages = []
         self.env_variables = {}
@@ -189,7 +187,7 @@ class RootGenerator(object):
                 dockerfiles = self.data_map.get("containers", None)
 
             if not dockerfiles:
-                logger.info("No containers specified in the '{0}'".format(self.config_filename))
+                logger.info("No containers specified")
                 break
             self.dockerfiles = dockerfiles
             for dockerfile_name, dockerfile_config in dockerfiles.items():
@@ -229,7 +227,7 @@ class RootGenerator(object):
             dockerfile_content += dockerfile_stage_content.content
         dockerfile_help = self.__get_user_help(dockerfile_name, dockerfile_config)
 
-        return res, DockerfileContent(dockerfile_help, dockerfile_content)
+        return res, DockerfileContent(dockerfile_name, dockerfile_help, dockerfile_content)
         
     def __get_comment(self, dockerfile_config, fmt, *args):
         if dockerfile_config.get("comments_disable", False):
@@ -252,7 +250,7 @@ class RootGenerator(object):
                 break
             dockerfile_stage_content += dockerfile_stage_section_content
         
-        return res, DockerfileContent(dockerfile_stage_help, dockerfile_stage_content)
+        return res, DockerfileContent(stage_name, dockerfile_stage_help, dockerfile_stage_content)
         
     def __do_dockerfile_stage_section(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config):
         generators = [self.__generate_dockerfile_expose, 
@@ -604,7 +602,14 @@ class RootGenerator(object):
                 else: 
                     logger.warning("Faled to parse COPY arguments {0}".format(w))
         return True, s_out
-        
+
+def save_dockerfile(content):
+    res, f = open_file("Dockerfile.{0}".content.name, "w")
+    if not res:
+        return 
+    f.write(content.content)
+    f.close()
+            
 def show_help(data_map):
     for help in data_map.get("help", []):
         print("{0}".format(help))
@@ -637,7 +642,13 @@ if __name__ == '__main__':
         yaml=YAML(typ='rt') 
         data_map = yaml.load(f)
         root_generator = RootGenerator(data_map)
+        res, content = root_generator.do()
+        if not res:
+            break
+        for dockerfile_content in content:
+            save_dockerfile(dockerfile_content)
+            
         if not arguments["--disable_help"]:
             show_help(data_map)
-        
+
         break
