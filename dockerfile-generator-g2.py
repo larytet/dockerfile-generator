@@ -751,10 +751,11 @@ def get_user_help_commands(data_map, root_generator, dockerfile_content):
         env_vars_help = get_user_help_env(root_generator)
         if not anonymous:
             tag = "{0}.{1}".format(dockerfile_name, stage_name)
+            s_out += "  sudo docker build --target {0} --tag {1}:latest --file {2}  .\n".format(stage_name, tag, replace_home(dockerfile_path))
         else:
             tag = "{0}".format(dockerfile_name)
+            s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(tag, replace_home(dockerfile_path))
 
-        s_out += "  sudo docker build --target {0} --tag {1}:latest --file {2}  .\n".format(stage_name, tag, replace_home(dockerfile_path))
         s_out += "  sudo docker run --rm --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(tag, volumes_help, ports_help, env_vars_help)
     
     return s_out 
