@@ -159,7 +159,14 @@ def get_yaml_comment(obj):
         return ""
     return "{0}".format(comment.value[1:].strip())
 
-DockerfileContent = collections.namedtuple('DockerfileContent', ['name', 'help', 'content'])
+def replace_home(s):
+    home_folder = os.path.expanduser("~")
+    if s.startswith(home_folder):
+        s = s.replace(home_folder, "$HOME")
+    return s
+
+DockerfileContent = collections.namedtuple('DockerfileContent', ['name', 'help', 'content', 'stages'])
+StageContent = collections.namedtuple('StageContent', ['name', 'help', 'content'])
 VolumeDefinitions = collections.namedtuple('VolumeDefinitions', ['src', 'dst', 'abs_path'])
 ExposedPort = collections.namedtuple('ExposedPort', ['port', 'protocol'])
 GeneratedFile = collections.namedtuple('GeneratedFile', ['filename', 'help', 'publish'])
@@ -172,7 +179,7 @@ class RootGenerator(object):
         object.__init__(RootGenerator)
         self.data_map = data_map
         self.dockerfiles = []
-        self.stages = []
+        self.dockerfile_contents = []
         self.env_variables = {}
         self.shells = []
         self.ports = []
@@ -199,7 +206,7 @@ class RootGenerator(object):
             
         return res, dockerfile_contents
 
-    def __get_user_help(self, dockerfile_name, dockerfile_config):
+    def __get_dockerfile_help(self, dockerfile_name, dockerfile_config):
         '''
         Print help and examples for the container
         '''
@@ -222,17 +229,20 @@ class RootGenerator(object):
             stages = [{None:dockerfile_config}]
             anonymous = True
 
-        self.stages += stages
+        dockerfile_stages = []
         for stage in stages:
             stage_name, stage_config = stage.popitem()
+            dockerfile_stages.append({stage_name:stage_config})
             stage_config.volumes = [] 
             res, dockerfile_stage_content = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config, stage_name, stage_config, anonymous)
             if not res:
                 break
             dockerfile_content += dockerfile_stage_content.content
-        dockerfile_help = self.__get_user_help(dockerfile_name, dockerfile_config)
+        dockerfile_help = self.__get_dockerfile_help(dockerfile_name, dockerfile_config)
 
-        return res, DockerfileContent(dockerfile_name, dockerfile_help, dockerfile_content)
+        content = DockerfileContent(dockerfile_name, dockerfile_help, dockerfile_content, dockerfile_stages)
+        self.dockerfile_contents.append(content)
+        return res, content 
         
     def __get_comment(self, dockerfile_config, fmt, *args):
         if dockerfile_config.get("comments_disable", False):
@@ -261,7 +271,7 @@ class RootGenerator(object):
                 break
             dockerfile_stage_content += dockerfile_stage_section_content
         
-        return res, DockerfileContent(stage_name, dockerfile_stage_help, dockerfile_stage_content)
+        return res, StageContent(stage_name, dockerfile_stage_help, dockerfile_stage_content)
     
     def __generate_entrypoint(self, stage_config):
         '''
@@ -637,54 +647,70 @@ class RootGenerator(object):
                     logger.warning("Faled to parse COPY arguments {0}".format(w))
         return True, s_out
 
+def get_dockerfile_path(dockerfile_name):
+    return os.path.join(confile_file_folder, "Dockerfile.{0}.g2".format(dockerfile_name))
+
+def get_user_help_env(root_generator):            
+    env_vars_help = ""
+    for env_var_name, env_var in root_generator.env_variables.iteritems():
+        if env_var.publish:
+            if env_var.value:
+                env_vars_help += " -e \"{0}={1}\"".format(env_var_name, env_var.value)
+            else:
+                env_vars_help += " -e {0}".format(env_var_name)
+    return env_vars_help
+
 def save_dockerfile(dockerfile_content):
-    res, f = open_file("Dockerfile.{0}.g2".format(dockerfile_content.name), "w")
+    res, f = open_file(get_dockerfile_path(dockerfile_content.name), "w")
     if not res:
         return 
     f.write(dockerfile_content.content)
     f.close()
 
-def get_user_help_commands(data_map, root_generator, dockerfile_name, dockerfile_config):
+def get_user_help_commands(data_map, root_generator, dockerfile_content):
     s_out = ""
     volumes_help = ""
-    for (_, dst, src_abs_path) in self.volumes:
-        volumes_help += " \\\n  --volume {0}:{1} ".format(src_abs_path, dst)
-    if volumes_help:
-        volumes_help += " \\\n "
-
-    ports_help = ""
-    for (port, protocol) in self.ports:
-        ports_help += " -p {0}:{0}/{1}".format(port, protocol)
-    if ports_help:
-        ports_help += " \\\n "
-        
-    env_vars_help = self.get_user_help_env()
-
-    dockerfile_path = os.path.join(confile_file_folder, "{0}".format(self.dockerfile_filename))
+    dockerfile_name = dockerfile_content.name
+    dockerfile_path = get_dockerfile_path(dockerfile_name)
     s_out += "  # Build the container. See https://docs.docker.com/engine/reference/commandline/build\n"
-    s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.dockerfile_name, replace_home(dockerfile_path))
+    s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(dockerfile_name, replace_home(dockerfile_path))
     s_out += "  # Run the previously built container (try to add --rm). See https://docs.docker.com/engine/reference/commandline/run\n"
-    # I need --init to handle signals like Ctrl-c see https://github.com/moby/moby/issues/2838 
-    s_out += "  sudo docker run --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(self.dockerfile_name, volumes_help, ports_help, env_vars_help)
+    
+    for stage in dockerfile_content.stages:
+        stage_name, stage_config = stage.popitem()
+         
+        for (_, dst, src_abs_path) in stage_config.volumes:
+            volumes_help += " \\\n  --volume {0}:{1} ".format(src_abs_path, dst)
+        if volumes_help:
+            volumes_help += " \\\n "
+        ports_help = ""
+        for (port, protocol) in root_generator.ports:
+            ports_help += " -p {0}:{0}/{1}".format(port, protocol)
+        if ports_help:
+            ports_help += " \\\n "
+        env_vars_help = get_user_help_env(root_generator)
+        s_out += "  sudo docker run --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(dockerfile_name, volumes_help, ports_help, env_vars_help)
+        
     s_out += "  # Start the previously run container (if run without --rm)\n"
-    s_out += "  sudo docker start --interactive {0}\n".format(self.dockerfile_name)
+    s_out += "  sudo docker start --interactive {0}\n".format(dockerfile_name)
     s_out += "  # Connect to a running container\n"
-    s_out += "  sudo docker exec --interactive --tty {0} /bin/bash\n".format(self.dockerfile_name)
+    s_out += "  sudo docker exec --interactive --tty {0} /bin/bash\n".format(dockerfile_name)
     s_out += "  # Save the container for the deployment to another machine. Use 'docker load' to load saved containers\n"
-    s_out += "  sudo docker save {0} -o {0}.tar\n".format(self.dockerfile_name)
+    s_out += "  sudo docker save {0} -o {0}.tar\n".format(dockerfile_name)
     s_out += "  # Remove container to 'run' it again\n"
-    s_out += "  sudo docker rm {0}\n".format(self.dockerfile_name)
+    s_out += "  sudo docker rm {0}\n".format(dockerfile_name)
+    
+    return s_out 
 
 def get_user_help(data_map, root_generator):
     '''
     Print help and examples for the container
     '''
     s_out = ""
-    for dockerfile_name, dockerfile_config in root_generator.dockerfiles.items():
-        s_out += "Container '{0}' help:\n".format(dockerfile_name)
-        for help in dockerfile_config.get("help", []):
-            s_out += "  {0}\n".format(help)
-            s_out += get_user_help_commands(data_map, root_generator, dockerfile_name, dockerfile_config)
+    for content in root_generator.dockerfile_contents:
+        s_out += "Container '{0}' help:\n".format(content.name)
+        s_out += "  {0}\n".format(dockerfile_content.help)
+        s_out += get_user_help_commands(data_map, root_generator, content)
             #s_out += get_user_help_shells()
             #s_out += get_user_help_env_list() 
             #s_out += get_user_help_ports()
