@@ -56,4 +56,5 @@ dockerfiles:
          help: 
            - Final container help
          run:
+           - touch "/root/final"
            - echo "Final"

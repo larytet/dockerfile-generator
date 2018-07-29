@@ -496,7 +496,7 @@ class RootGenerator(object):
         if dockerfile_config.get("build_trace_disable", False):
             commands_concatenated = "\nRUN "
         else:
-            commands_concatenated = "\nRUN `# Execute commands` && set -x"
+            commands_concatenated = "\nRUN `# Execute commands` && set -x "
         first = True        
         for command in commands:
             if command.startswith("comment "):
@@ -672,12 +672,13 @@ def get_user_help_commands(data_map, root_generator, dockerfile_content):
     volumes_help = ""
     dockerfile_name = dockerfile_content.name
     dockerfile_path = get_dockerfile_path(dockerfile_name)
-    s_out += "  # Build the container. See https://docs.docker.com/engine/reference/commandline/build\n"
-    s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(dockerfile_name, replace_home(dockerfile_path))
-    s_out += "  # Run the previously built container (try to add --rm). See https://docs.docker.com/engine/reference/commandline/run\n"
-    
+    s_out += "  # Build and run the container (try to add --rm). See https://docs.docker.com/engine/reference/commandline/run\n"    
     for stage in dockerfile_content.stages:
         stage_name, stage_config = stage.popitem()
+        anonymous = False 
+        if not stage_name:
+            stage_name = dockerfile_name
+            anonymous = True
          
         for (_, dst, src_abs_path) in stage_config.volumes:
             volumes_help += " \\\n  --volume {0}:{1} ".format(src_abs_path, dst)
@@ -689,16 +690,13 @@ def get_user_help_commands(data_map, root_generator, dockerfile_content):
         if ports_help:
             ports_help += " \\\n "
         env_vars_help = get_user_help_env(root_generator)
-        s_out += "  sudo docker run --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(dockerfile_name, volumes_help, ports_help, env_vars_help)
-        
-    s_out += "  # Start the previously run container (if run without --rm)\n"
-    s_out += "  sudo docker start --interactive {0}\n".format(dockerfile_name)
-    s_out += "  # Connect to a running container\n"
-    s_out += "  sudo docker exec --interactive --tty {0} /bin/bash\n".format(dockerfile_name)
-    s_out += "  # Save the container for the deployment to another machine. Use 'docker load' to load saved containers\n"
-    s_out += "  sudo docker save {0} -o {0}.tar\n".format(dockerfile_name)
-    s_out += "  # Remove container to 'run' it again\n"
-    s_out += "  sudo docker rm {0}\n".format(dockerfile_name)
+        if not anonymous:
+            tag = "{0}.{1}".format(dockerfile_name, stage_name)
+        else:
+            tag = "{0}".format(dockerfile_name)
+
+        s_out += "  sudo docker build --target {0} --tag {1}:latest --file {2}  .\n".format(stage_name, tag, replace_home(dockerfile_path))
+        s_out += "  sudo docker run --rm --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(tag, volumes_help, ports_help, env_vars_help)
     
     return s_out 
 
