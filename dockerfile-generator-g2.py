@@ -458,12 +458,12 @@ class RootGenerator(object):
             if not ' ' in command:
                 # A single word command, probably a macro, echo trace
                 if not dockerfile_config.get("build_trace_disable", False):
-                    first, c = self.generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
+                    first, c = self.__generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
                     commands_concatenated += c
                         
             words = match_macro(dockerfile_config.get("macros", {}), command)
             for w in words:
-                first, c = self.generate_command_chain(first, " {0}".format(w),  " && \\\n\t")
+                first, c = self.__generate_command_chain(first, " {0}".format(w),  " && \\\n\t")
                 commands_concatenated += c
         
         s_out += commands_concatenated 
