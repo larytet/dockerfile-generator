@@ -87,12 +87,12 @@ def test_all():
                                         - intermediate: # base stage
                                            base: ubuntu:16.04
                                            sections:
-                                             - section:
+                                             - section: # first section
                                                expose:
                                                  - 8080/TCP
                                                install:
                                                  - build-essential    
-                                             - section:
+                                             - section: # seciond section
                                                run:
                                                  - $get_release
                                                env:
@@ -102,10 +102,9 @@ def test_all():
                                               run:
                                                 - echo "Final"
                                """)
-    res, str = root_generator.do()
-    assert(not res)    
-    assert(len(root_generator.dockerfiles) == 2)
-    assert(len(root_generator.stages) == 3)
-    print str
+    res, content = root_generator.do()
+    assert(res)  
+    for dockerfile_content in content:   
+        print dockerfile_content.content
     assert(False)
     

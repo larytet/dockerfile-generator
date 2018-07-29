@@ -168,6 +168,7 @@ class RootGenerator(object):
         self.env_variables = {}
         self.shells = []
         self.ports = []
+        self.macros = data_map.get("macros", {})
 
     def do(self):
         res = False
@@ -211,7 +212,7 @@ class RootGenerator(object):
         # "stages" is optional. I am forcing "stages" mode in all cases
         # and handling the YAML using the same function 
         if not stages:
-            stages = [{None:dockerfile_config}]
+            stages = [{"anonymous":dockerfile_config}]
 
         self.stages += stages
         for stage in stages:
@@ -235,7 +236,7 @@ class RootGenerator(object):
         dockerfile_stage_content = ""
         dockerfile_stage_help = ""
 
-        dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# Stage {0} {1}", stage_name, stage_config.ca.comment)
+        dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# Stage {0} {1}", stage_name, stage_config.ca.comment[0])
         sections = stage_config.get("sections", None)
         if not sections:
             sections = [stage_config]
@@ -260,7 +261,8 @@ class RootGenerator(object):
                       self.__generate_dockerfile_run]
         
         s_out = ""
-        s_out += self.__get_comment(dockerfile_config, "\n# Section {0}", section_config.ca.comment) 
+        if section_config.ca.comment:
+            s_out += self.__get_comment(dockerfile_config, "\n# Section {0}", section_config.ca.comment)
         for generator in generators:
             res, s_tmp = generator(dockerfile_name, dockerfile_config, stage_name, stage_config, section_config)
             # print a separator after non-empty blocks
@@ -376,7 +378,7 @@ class RootGenerator(object):
             command = "\nRUN `# Install packages` && set -x && "
         command += " \\\n\tyum -y -v install"
         for package in packages:
-            words = match_macro(dockerfile_config.get("macros", {}), package)
+            words = match_macro(self.macros, package)
             for w in words:
                 command += " {0}".format(w)
         
@@ -401,7 +403,7 @@ class RootGenerator(object):
             command = "\nRUN `# Install packages` && set -x &&"
         command += " \\\n\tapt-get update && \\\n\tapt-get -y install"
         for package in packages:
-            words = match_macro(dockerfile_config.get("macros", {}), package)
+            words = match_macro(self.macros, package)
             for w in words:
                 command += " {0}".format(w)
             
@@ -461,7 +463,7 @@ class RootGenerator(object):
                     first, c = self.__generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
                     commands_concatenated += c
                         
-            words = match_macro(dockerfile_config.get("macros", {}), command)
+            words = match_macro(self.macros, command)
             for w in words:
                 first, c = self.__generate_command_chain(first, " {0}".format(w),  " && \\\n\t")
                 commands_concatenated += c
@@ -479,7 +481,7 @@ class RootGenerator(object):
         if not env_vars:
             return False, ""
         for env_var in env_vars:
-            words = match_macro(dockerfile_config.get("macros", {}), env_var)
+            words = match_macro(self.macros, env_var)
             for w in words:
                 s_out += "\nENV {0}".format(w)
                 name, value = split_env_definition(w)
@@ -582,7 +584,7 @@ class RootGenerator(object):
         if not files:
             return False, ""
         for file in files:
-            words = match_macro(dockerfile_config.get("macros", {}), file)
+            words = match_macro(self.macros, file)
             for w in words:
                 src, dst = split_file_paths(w)
                 if (src, dst) != (None, None):
