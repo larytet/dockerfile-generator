@@ -216,7 +216,7 @@ def get_yaml_comment(obj):
 def convert_to_list(v):
     if not v:
         return []
-    if (type(v) != list) and not isinstance(v, list):
+    if not isinstance(v, list):
         return [v]
     return v
 
