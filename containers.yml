@@ -36,22 +36,22 @@ dockerfiles:
  ubuntu.16.04:
     packager: deb
     stages:
-      - intermediate: 
+      - intermediate: # Comment for intermediate 
          base: ubuntu:16.04
          help: 
            - Intermediate container help
          sections:
-           - section:
+           - section:  #first section
              expose:
                - 8080/TCP
              install:
                - build-essential    
-           - section:
+           - section: # second section
              run:
                - $get_release
              env:
                - $environment_vars
-      - final: 
+      - final: # Comment for final
          base: intermediate
          help: 
            - Final container help

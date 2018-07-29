@@ -157,7 +157,7 @@ def get_yaml_comment(obj):
     comment = obj.ca.comment[0]
     if not comment:
         return ""
-    return "'{0}'".format(comment.value[1:].strip())
+    return "{0}".format(comment.value[1:].strip())
 
 DockerfileContent = collections.namedtuple('DockerfileContent', ['name', 'help', 'content'])
 VolumeDefinitions = collections.namedtuple('VolumeDefinitions', ['src', 'dst', 'abs_path'])
@@ -217,13 +217,15 @@ class RootGenerator(object):
         dockerfile_help = ""
         # A container contains one or more stage
         stages = dockerfile_config.get("stages", None)
+        anonymous = False
         if not stages:
             stages = [{None:dockerfile_config}]
+            anonymous = True
 
         self.stages += stages
         for stage in stages:
             stage_name, stage_config = stage.popitem() 
-            res, dockerfile_stage_content = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config, stage_name, stage_config)
+            res, dockerfile_stage_content = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config, stage_name, stage_config, anonymous)
             if not res:
                 break
             dockerfile_content += dockerfile_stage_content.content
@@ -236,22 +238,24 @@ class RootGenerator(object):
             return ""
         return fmt.format(*args)
         
-    def __do_dockerfile_stage(self, dockerfile_name, dockerfile_config, stage_name, stage_config):
+    def __do_dockerfile_stage(self, dockerfile_name, dockerfile_config, stage_name, stage_config, anonymous):
         res = False
         dockerfile_stage_content = ""
         dockerfile_stage_help = ""
 
-        if stage_name:
-            dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# Stage {0} {1}", stage_name, get_yaml_comment(stage_config))
+        if not anonymous and stage_name:
+            dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# {0}", get_yaml_comment(stage_config))
             
         dockerfile_stage_content += self.__generate_header(stage_config, stage_name)
         dockerfile_stage_content += self.__generate_entrypoint(stage_config)
             
         sections = stage_config.get("sections", None)
+        anonymous = False
         if not sections:
             sections = [stage_config]
+            anonymous = True
         for section_config in sections:
-            res, dockerfile_stage_section_content = self.__do_dockerfile_stage_section(dockerfile_name, dockerfile_config, stage_name, stage_config, section_config)
+            res, dockerfile_stage_section_content = self.__do_dockerfile_stage_section(dockerfile_name, dockerfile_config, stage_name, stage_config, section_config, anonymous)
             if not res:
                 break
             dockerfile_stage_content += dockerfile_stage_section_content
@@ -281,7 +285,7 @@ class RootGenerator(object):
             s_out += "\nFROM {0}".format(stage_config_base)
         return s_out
 
-    def __do_dockerfile_stage_section(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config):
+    def __do_dockerfile_stage_section(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config, anonymous):
         generators = [self.__generate_dockerfile_expose, 
                       self.__generate_dockerfile_env,           
                       self.__generate_dockerfile_env_extended,           
@@ -294,7 +298,7 @@ class RootGenerator(object):
                       self.__generate_dockerfile_run]
         
         s_out = ""
-        if section_config.ca.comment:
+        if not anonymous and section_config.ca.comment:
             s_out += self.__get_comment(dockerfile_config, "\n# Section {0}", get_yaml_comment(section_config))
         for generator in generators:
             res, s_tmp = generator(dockerfile_name, dockerfile_config, stage_name, stage_config, section_config)
