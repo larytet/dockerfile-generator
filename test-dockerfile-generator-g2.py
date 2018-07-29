@@ -42,7 +42,7 @@ def test_containers():
                                       packager: rpm
                                """)
     res, str = root_generator.do()
-    assert(not res)    
+    assert(res)    
     assert(len(root_generator.dockerfiles) == 2)
     assert(len(root_generator.stages) == 2)
    
