@@ -152,6 +152,8 @@ def generate_section_separator():
     return "\n" 
 
 def get_yaml_comment(obj):
+    if not obj.ca.comment:
+        return ""
     comment = obj.ca.comment[0]
     if not comment:
         return ""
@@ -241,6 +243,10 @@ class RootGenerator(object):
 
         if stage_name:
             dockerfile_stage_content += self.__get_comment(dockerfile_config, "\n# Stage {0} {1}", stage_name, get_yaml_comment(stage_config))
+            
+        dockerfile_stage_content += self.__generate_header(stage_config, stage_name)
+        dockerfile_stage_content += self.__generate_entrypoint(stage_config)
+            
         sections = stage_config.get("sections", None)
         if not sections:
             sections = [stage_config]
@@ -251,7 +257,30 @@ class RootGenerator(object):
             dockerfile_stage_content += dockerfile_stage_section_content
         
         return res, DockerfileContent(stage_name, dockerfile_stage_help, dockerfile_stage_content)
+    
+    def __generate_entrypoint(self, stage_config):
+        '''
+        Add CMD 
+        '''
+        s_out = ""
+        entrypoint = stage_config.get("entrypoint", None)
+        if not entrypoint:
+            return s_out
         
+        command = "\nENTRYPOINT"
+        command += " {0}".format(entrypoint) 
+        s_out += command
+        return s_out
+        
+    def __generate_header(self, stage_config, stage_name):
+        s_out = ""
+        stage_config_base = stage_config.get("base", "centos:centos7")
+        if stage_name:
+            s_out += "\nFROM {0} as {1}".format(stage_config_base, stage_name)
+        else:
+            s_out += "\nFROM {0}".format(stage_config_base)
+        return s_out
+
     def __do_dockerfile_stage_section(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config):
         generators = [self.__generate_dockerfile_expose, 
                       self.__generate_dockerfile_env,           
@@ -603,11 +632,11 @@ class RootGenerator(object):
                     logger.warning("Faled to parse COPY arguments {0}".format(w))
         return True, s_out
 
-def save_dockerfile(content):
-    res, f = open_file("Dockerfile.{0}".content.name, "w")
+def save_dockerfile(dockerfile_content):
+    res, f = open_file("Dockerfile.{0}.g2".format(dockerfile_content.name), "w")
     if not res:
         return 
-    f.write(content.content)
+    f.write(dockerfile_content.content)
     f.close()
             
 def show_help(data_map):
