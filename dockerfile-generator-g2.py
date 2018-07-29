@@ -148,6 +148,60 @@ def split_env_definition(s):
 
     return s, ""
 
+def find_folder(folder, default_res=None):
+    '''
+    Try to figure out where the specified folder is
+    Limit number of searches
+    '''
+    START_FOLDERS = [os.path.expanduser("~")]
+    count = 0
+    for start_folder in START_FOLDERS:
+        for root, dirs, _ in os.walk(start_folder):
+            if folder in dirs:
+                return replace_home(os.path.join(root, folder))
+            count += 1
+            if count > 10*1000:
+                break
+
+    return default_res
+
+def substitute_env_variables(s, env_variables):
+    '''
+    Replace simple cases of ${NAME}
+    '''
+    replaced = False
+    for env_variable in env_variables:
+        s_new = string.replace(s, "${{{0}}}".format(env_variable), env_variables[env_variable].value)
+        replaced |= s != s_new
+        s = s_new
+    return replaced, s 
+
+def substitute_env_variables_deep(s, env_variables):
+    '''
+    Try to substitue variables until nothing changes
+    '''
+    while True:
+        res, s = substitute_env_variables(s, env_variables)
+        if not res:
+            break
+    return s
+
+def split_file_paths(s):
+    '''
+    I do not support all legal file paths here
+    '''
+    patterns = ['"(.+)" +"(.+)"', r'(\S+) +(\S+)']
+    pattern_match = None
+    for pattern in patterns:
+        pattern_match = re.match(pattern, s)
+        if pattern_match:
+            break
+        
+    if pattern_match:
+        return pattern_match.group(1), pattern_match.group(2)
+
+    return None, None
+
 def generate_section_separator():
     return "\n" 
 
@@ -158,6 +212,13 @@ def get_yaml_comment(obj):
     if not comment:
         return ""
     return "{0}".format(comment.value[1:].strip())
+
+def convert_to_list(v):
+    if not v:
+        return []
+    if (type(v) != list):
+        return [v]
+    return v
 
 def replace_home(s):
     home_folder = os.path.expanduser("~")
@@ -184,6 +245,7 @@ class RootGenerator(object):
         self.shells = []
         self.ports = []
         self.macros = data_map.get("macros", {})
+        self.warning_folder_does_not_exist = False
 
     def do(self):
         res = False
@@ -355,7 +417,7 @@ class RootGenerator(object):
         if not env_vars:
             return False, ""
         for env_var in env_vars:
-            words = process_macro(env_var)
+            _, words = match_macro(self.macros, env_var)
             for w in words:
                 s_out += "\nENV {0}".format(w)
                 name, value = split_env_definition(w)
@@ -501,7 +563,7 @@ class RootGenerator(object):
         for command in commands:
             if command.startswith("comment "):
                 command = command.split(" ", 1)[1]
-                first, c = self.generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
+                first, c = self.__generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
                 commands_concatenated += c
                 continue
                 
@@ -580,26 +642,26 @@ class RootGenerator(object):
             if collection != None:
                 collection.append(GeneratedFile(filename, help, publish))
             if not dockerfile_config.get("build_trace_disable", False):
-                first, c = self.generate_command_chain(first, "`# Generating {0}` mkdir -p \"{1}\"".format(filename, dirname),  " && \\\n\t")
+                first, c = self.__generate_command_chain(first, "`# Generating {0}` mkdir -p \"{1}\"".format(filename, dirname),  " && \\\n\t")
             else:
-                first, c = self.generate_command_chain(first, "mkdir -p \"{0}\"".format(dirname),  " && \\\n\t")
+                first, c = self.__generate_command_chain(first, "mkdir -p \"{0}\"".format(dirname),  " && \\\n\t")
             commands_concatenated += c
             for line in help:
                 line = "# " + line + "\\n"
-                first, c = self.generate_command_chain(first, "echo -e \"{0}\" > {1}".format(line, filename),  " && \\\n\t")
+                first, c = self.__generate_command_chain(first, "echo -e \"{0}\" > {1}".format(line, filename),  " && \\\n\t")
                 commands_concatenated += c
             for line in shell["lines"]:
-                words = process_macro(line)
+                _, words = match_macro(self.macros, line)
                 for w in words:
                     if w.startswith("comment "):
                         w = w.split(" ", 1)[1]
-                        first, c = self.generate_command_chain(first, "`# {0}`".format(w),  " && \\\n\t")
+                        first, c = self.__generate_command_chain(first, "`# {0}`".format(w),  " && \\\n\t")
                         commands_concatenated += c
                     else:
-                        first, c = self.generate_command_chain(first, "echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
+                        first, c = self.__generate_command_chain(first, "echo \"{0}\" >> {1}".format(w, filename),  " && \\\n\t")
                         commands_concatenated += c
             if set_executable:
-                first, c = self.generate_command_chain(first, "chmod +x {0}".format(filename),  " && \\\n\t")
+                first, c = self.__generate_command_chain(first, "chmod +x {0}".format(filename),  " && \\\n\t")
                 commands_concatenated += c
         s_out += commands_concatenated
         return True, s_out
