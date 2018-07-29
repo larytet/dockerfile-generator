@@ -243,7 +243,7 @@ class RootGenerator(object):
         self.dockerfile_contents = []
         self.env_variables = {}
         self.shells = []
-        self.ports = []
+        self.ports = {}
         self.macros = data_map.get("macros", {})
         self.warning_folder_does_not_exist = False
 
@@ -392,57 +392,24 @@ class RootGenerator(object):
         if not ports:
             return False, ""
         command = "\nEXPOSE"
+        ports_list = self.ports.get(dockerfile_name, [])
         for port in ports:
             words = port.split("/")
             if len(words) == 1:
                 isTcp = True
-                self.ports.append(ExposedPort(words[0], "TCP"))
+                ports_list.append(ExposedPort(words[0], "TCP"))
             else:
-                self.ports.append(ExposedPort(words[0], words[1]))
+                ports_list.append(ExposedPort(words[0], words[1]))
                 isTcp = (words[1] == "TCP")
             if isTcp:
                 command += " {0}".format(words[0])
             else: 
                 command += " {0}".format(port)
+        self.ports[dockerfile_name] = ports_list
         s_out += command
     
         return True, s_out
 
-    def __generate_dockerfile_env(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config):
-        '''
-        Handle YAML 'env' - ENV command in the Dockerfile
-        '''
-        s_out = ""
-        env_vars = section_config.get("env", None)
-        if not env_vars:
-            return False, ""
-        for env_var in env_vars:
-            _, words = match_macro(self.macros, env_var)
-            for w in words:
-                s_out += "\nENV {0}".format(w)
-                name, value = split_env_definition(w)
-                self.env_variables[name] = EnvironmentVariable(name, value, "", False)
-        return True, s_out
-
-    def __generate_dockerfile_env_extended(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config):
-        '''
-        Handle YAML 'environment_variables' - ENV command in the Dockerfile
-        '''
-        s_out = ""
-        environment_variables = section_config.get("env_ext", None)
-        if not environment_variables:
-            return False, ""
-        for environment_variable in environment_variables:
-            env_var_definition =  environment_variable["definition"]
-            env_var_help = environment_variable.get("help", "")
-            env_var_publish = environment_variable.get("publish", False)
-            for env_var_help_line in convert_to_list(env_var_help):
-                s_out += "\n# {0}".format(env_var_help_line)
-            s_out += "\nENV {0}\n".format(env_var_definition)
-            name, value = split_file_paths(env_var_definition)
-            self.env_variables[name] = EnvironmentVariable(name, value, env_var_help, env_var_publish)
-            
-        return True, s_out
 
     def __generate_dockerfile_volume(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config):
         '''
@@ -453,9 +420,10 @@ class RootGenerator(object):
         if not volumes:
             return False, ""
         command = "\nVOLUME ["
+        env_dict = self.env_variables.get(dockerfile_name, {})
         for volume in volumes:
             src, dst = split_file_paths(volume)
-            dst = substitute_env_variables_deep(dst, self.env_variables)
+            dst = substitute_env_variables_deep(dst, env_dict)
             command += ' "{0}",'.format(dst)
             src_abs_path = find_folder(src, src)
             if src_abs_path == src:
@@ -587,12 +555,14 @@ class RootGenerator(object):
         env_vars = section_config.get("env", None)
         if not env_vars:
             return False, ""
+        env_dict = self.env_variables.get(dockerfile_name, {})
         for env_var in env_vars:
             _, words = match_macro(self.macros, env_var)
             for w in words:
                 s_out += "\nENV {0}".format(w)
                 name, value = split_env_definition(w)
-                self.env_variables[name] = EnvironmentVariable(name, value, "", False)
+                env_dict[name] = EnvironmentVariable(name, value, "", False)
+        self.env_variables[dockerfile_name] = env_dict 
         return True, s_out
 
     def __generate_dockerfile_env_extended(self, dockerfile_name, dockerfile_config, stage_name, stage_config, section_config):
@@ -603,6 +573,7 @@ class RootGenerator(object):
         environment_variables = section_config.get("env_ext", None)
         if not environment_variables:
             return False, ""
+        env_dict = self.env_variables.get(dockerfile_name, {})
         for environment_variable in environment_variables:
             env_var_definition =  environment_variable["definition"]
             env_var_help = environment_variable.get("help", "")
@@ -611,7 +582,8 @@ class RootGenerator(object):
                 s_out += "\n# {0}".format(env_var_help_line)
             s_out += "\nENV {0}\n".format(env_var_definition)
             name, value = split_file_paths(env_var_definition)
-            self.env_variables[name] = EnvironmentVariable(name, value, env_var_help, env_var_publish)
+            env_dict[name] = EnvironmentVariable(name, value, env_var_help, env_var_publish)
+        self.env_variables[dockerfile_name] = env_dict 
             
         return True, s_out
     
@@ -635,7 +607,8 @@ class RootGenerator(object):
             filename = shell["filename"]
             help = shell.get("help", [])
             publish = shell.get("publish", False)
-            filename_env = substitute_env_variables_deep(filename, self.env_variables)
+            env_dict = self.env_variables.get(dockerfile_name, {})
+            filename_env = substitute_env_variables_deep(filename, env_dict)
             dirname = os.path.dirname(filename_env)
             #print("dirname", dirname, filename_env)
             
@@ -709,9 +682,11 @@ class RootGenerator(object):
 def get_dockerfile_path(dockerfile_name):
     return os.path.join(confile_file_folder, "Dockerfile.{0}.g2".format(dockerfile_name))
 
-def get_user_help_env(root_generator):            
+def get_user_help_env(root_generator, dockerfile_name):            
     env_vars_help = ""
-    for env_var_name, env_var in root_generator.env_variables.iteritems():
+    env_dict = root_generator.env_variables.get(dockerfile_name, {})
+    
+    for env_var_name, env_var in env_dict.iteritems():
         if env_var.publish:
             if env_var.value:
                 env_vars_help += " -e \"{0}={1}\"".format(env_var_name, env_var.value)
@@ -744,11 +719,12 @@ def get_user_help_commands(data_map, root_generator, dockerfile_content):
         if volumes_help:
             volumes_help += " \\\n "
         ports_help = ""
-        for (port, protocol) in root_generator.ports:
+        ports_list = root_generator.ports.get(dockerfile_name, [])
+        for (port, protocol) in ports_list:
             ports_help += " -p {0}:{0}/{1}".format(port, protocol)
         if ports_help:
             ports_help += " \\\n "
-        env_vars_help = get_user_help_env(root_generator)
+        env_vars_help = get_user_help_env(root_generator, dockerfile_name)
         if not anonymous:
             tag = "{0}.{1}".format(dockerfile_name, stage_name)
             s_out += "  sudo docker build --target {0} --tag {1}:latest --file {2}  .\n".format(stage_name, tag, replace_home(dockerfile_path))
