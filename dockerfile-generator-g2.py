@@ -127,10 +127,10 @@ def match_macro(macros, token):
     if res:
         macro = macros.get(macro_key, None)
         if macro:
-            return macro
+            return True, macro
         else:
             logger.warning("Macro '{0}' not found. Skip macro substitution".format(token))
-    return [token]
+    return False, [token]
 
 def split_env_definition(s):
     '''
@@ -426,7 +426,7 @@ class RootGenerator(object):
             command = "\nRUN `# Install packages` && set -x && "
         command += " \\\n\tyum -y -v install"
         for package in packages:
-            words = match_macro(self.macros, package)
+            _, words = match_macro(self.macros, package)
             for w in words:
                 command += " {0}".format(w)
         
@@ -451,7 +451,7 @@ class RootGenerator(object):
             command = "\nRUN `# Install packages` && set -x &&"
         command += " \\\n\tapt-get update && \\\n\tapt-get -y install"
         for package in packages:
-            words = match_macro(self.macros, package)
+            _, words = match_macro(self.macros, package)
             for w in words:
                 command += " {0}".format(w)
             
@@ -496,7 +496,7 @@ class RootGenerator(object):
         if dockerfile_config.get("build_trace_disable", False):
             commands_concatenated = "\nRUN "
         else:
-            commands_concatenated = "\nRUN `# Execute commands` && set -x "
+            commands_concatenated = "\nRUN `# Execute commands` && set -x && "
         first = True        
         for command in commands:
             if command.startswith("comment "):
@@ -505,13 +505,10 @@ class RootGenerator(object):
                 commands_concatenated += c
                 continue
                 
-            if not ' ' in command:
-                # A single word command, probably a macro, echo trace
-                if not dockerfile_config.get("build_trace_disable", False):
-                    first, c = self.__generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
-                    commands_concatenated += c
-                        
-            words = match_macro(self.macros, command)
+            is_macro, words = match_macro(self.macros, command)
+            if is_macro and not dockerfile_config.get("build_trace_disable", False):
+                first, c = self.__generate_command_chain(first, " `# {0}`".format(command),  " && \\\n\t")
+                commands_concatenated += c
             for w in words:
                 first, c = self.__generate_command_chain(first, " {0}".format(w),  " && \\\n\t")
                 commands_concatenated += c
@@ -529,7 +526,7 @@ class RootGenerator(object):
         if not env_vars:
             return False, ""
         for env_var in env_vars:
-            words = match_macro(self.macros, env_var)
+            _, words = match_macro(self.macros, env_var)
             for w in words:
                 s_out += "\nENV {0}".format(w)
                 name, value = split_env_definition(w)
@@ -632,7 +629,7 @@ class RootGenerator(object):
         if not files:
             return False, ""
         for file in files:
-            words = match_macro(self.macros, file)
+            _, words = match_macro(self.macros, file)
             for w in words:
                 src, dst = split_file_paths(w)
                 if (src, dst) != (None, None):
