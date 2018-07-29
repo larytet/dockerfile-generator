@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __builtin__ import str
 
 
 dockerfile_generator = __import__("dockerfile-generator-g2")
@@ -60,8 +61,8 @@ def test_containers1():
 def test_all():
     root_generator = load_yaml("""
                                   macros:
-                                   get_release:
-                                    - cat /etc/*release
+                                   get_release:  # get_release comment
+                                    - cat /etc/*release # cat comment
                                     - gcc --version
                                   
                                    build_essential_centos:
@@ -77,10 +78,10 @@ def test_all():
                                      - SHARED_FOLDER /etc/docker  
                                   
                                   dockerfiles:                                  
-                                    centos7:
+                                    centos7: # centos 7 comment
                                       base: centos:centos7
                                       packager: rpm
-                                    ubuntu.16.04:
+                                    ubuntu.16.04: # ubuntu.16.04 comment
                                       packager: deb
                                       stages:   # I nees multiple stages test
                                         - intermediate: # base stage
@@ -105,4 +106,6 @@ def test_all():
     assert(not res)    
     assert(len(root_generator.dockerfiles) == 2)
     assert(len(root_generator.stages) == 3)
+    print str
+    assert(False)
     
