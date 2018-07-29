@@ -224,7 +224,8 @@ class RootGenerator(object):
 
         self.stages += stages
         for stage in stages:
-            stage_name, stage_config = stage.popitem() 
+            stage_name, stage_config = stage.popitem()
+            stage_config.volumes = [] 
             res, dockerfile_stage_content = self.__do_dockerfile_stage(dockerfile_name, dockerfile_config, stage_name, stage_config, anonymous)
             if not res:
                 break
@@ -382,12 +383,12 @@ class RootGenerator(object):
         command = "\nVOLUME ["
         for volume in volumes:
             src, dst = split_file_paths(volume)
-            dst = substitute_evn_variables_deep(dst, self.env_variables)
+            dst = substitute_env_variables_deep(dst, self.env_variables)
             command += ' "{0}",'.format(dst)
             src_abs_path = find_folder(src, src)
             if src_abs_path == src:
                 logger.warning("I did not find folder {0} in your home directory".format(src))
-            self.volumes.append(VolumeDefinitions(src, dst, src_abs_path))
+            stage_config.volumes.append(VolumeDefinitions(src, dst, src_abs_path))
         command = command[:-1]
         command += ' ]' 
         s_out += command
@@ -565,7 +566,7 @@ class RootGenerator(object):
             filename = shell["filename"]
             help = shell.get("help", [])
             publish = shell.get("publish", False)
-            filename_env = substitute_evn_variables_deep(filename, self.env_variables)
+            filename_env = substitute_env_variables_deep(filename, self.env_variables)
             dirname = os.path.dirname(filename_env)
             #print("dirname", dirname, filename_env)
             
@@ -642,10 +643,59 @@ def save_dockerfile(dockerfile_content):
         return 
     f.write(dockerfile_content.content)
     f.close()
+
+def get_user_help_commands(data_map, root_generator, dockerfile_name, dockerfile_config):
+    s_out = ""
+    volumes_help = ""
+    for (_, dst, src_abs_path) in self.volumes:
+        volumes_help += " \\\n  --volume {0}:{1} ".format(src_abs_path, dst)
+    if volumes_help:
+        volumes_help += " \\\n "
+
+    ports_help = ""
+    for (port, protocol) in self.ports:
+        ports_help += " -p {0}:{0}/{1}".format(port, protocol)
+    if ports_help:
+        ports_help += " \\\n "
+        
+    env_vars_help = self.get_user_help_env()
+
+    dockerfile_path = os.path.join(confile_file_folder, "{0}".format(self.dockerfile_filename))
+    s_out += "  # Build the container. See https://docs.docker.com/engine/reference/commandline/build\n"
+    s_out += "  sudo docker build --tag {0}:latest --file {1}  .\n".format(self.dockerfile_name, replace_home(dockerfile_path))
+    s_out += "  # Run the previously built container (try to add --rm). See https://docs.docker.com/engine/reference/commandline/run\n"
+    # I need --init to handle signals like Ctrl-c see https://github.com/moby/moby/issues/2838 
+    s_out += "  sudo docker run --name {0} --network='host' --init --tty --interactive{1}{2}{3} {0}:latest\n".format(self.dockerfile_name, volumes_help, ports_help, env_vars_help)
+    s_out += "  # Start the previously run container (if run without --rm)\n"
+    s_out += "  sudo docker start --interactive {0}\n".format(self.dockerfile_name)
+    s_out += "  # Connect to a running container\n"
+    s_out += "  sudo docker exec --interactive --tty {0} /bin/bash\n".format(self.dockerfile_name)
+    s_out += "  # Save the container for the deployment to another machine. Use 'docker load' to load saved containers\n"
+    s_out += "  sudo docker save {0} -o {0}.tar\n".format(self.dockerfile_name)
+    s_out += "  # Remove container to 'run' it again\n"
+    s_out += "  sudo docker rm {0}\n".format(self.dockerfile_name)
+
+def get_user_help(data_map, root_generator):
+    '''
+    Print help and examples for the container
+    '''
+    s_out = ""
+    for dockerfile_name, dockerfile_config in root_generator.dockerfiles.items():
+        s_out += "Container '{0}' help:\n".format(dockerfile_name)
+        for help in dockerfile_config.get("help", []):
+            s_out += "  {0}\n".format(help)
+            s_out += get_user_help_commands(data_map, root_generator, dockerfile_name, dockerfile_config)
+            #s_out += get_user_help_shells()
+            #s_out += get_user_help_env_list() 
+            #s_out += get_user_help_ports()
+            #s_out += get_user_help_examples()
+    
+    return s_out        
             
-def show_help(data_map):
+def show_help(data_map, root_generator):
     for help in data_map.get("help", []):
         print("{0}".format(help))
+    print get_user_help(data_map, root_generator)
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='0.1')
@@ -682,6 +732,6 @@ if __name__ == '__main__':
             save_dockerfile(dockerfile_content)
             
         if not arguments["--disable_help"]:
-            show_help(data_map)
+            show_help(data_map, root_generator)
 
         break
