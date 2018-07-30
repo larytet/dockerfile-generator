@@ -1,9 +1,9 @@
 macros:
- get_release:
+ get_release:  # In the end of the docker build print version of the installed GCC 
   - cat /etc/*release
   - gcc --version
 
- build_essential_centos:
+ build_essential_centos: # Install GCC&friends
   - gcc 
   - gcc-c++ 
   - make
