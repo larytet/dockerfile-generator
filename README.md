@@ -117,3 +117,9 @@ Stop and remove:
 #docker rmi $(docker images -q)
 ./remove-all.sh
 ```
+
+# Related projects
+
+* https://github.com/avirshup/DockerMake
+* http://docteurklein.github.io/2015/01/11/docker-auto-builds-and-me/
+* https://blog.dockbit.com/templating-your-dockerfile-like-a-boss-2a84a67d28e9
