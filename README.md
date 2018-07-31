@@ -123,3 +123,11 @@ Stop and remove:
 * https://github.com/avirshup/DockerMake
 * http://docteurklein.github.io/2015/01/11/docker-auto-builds-and-me/
 * https://blog.dockbit.com/templating-your-dockerfile-like-a-boss-2a84a67d28e9
+
+
+# TODO
+
+* Support copy_secret which removes the files in the end of the build. The user is expected to "squash the layer when running the build. 
+* The "generate" methods are messy, require refactoring
+* Injection of comments is not consistent
+* 
