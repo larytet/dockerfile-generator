@@ -127,7 +127,7 @@ Stop and remove:
 
 # TODO
 
-* Support copy_secret which removes the files in the end of the build. The user is expected to "squash the layer when running the build. 
+* Support copy_secret which removes the files in the end of the build. The user is expected to "squash" the layer when running the build. 
 * The "generate" methods are messy, require refactoring
 * Injection of comments is not consistent
 * Better management of layers and caching
