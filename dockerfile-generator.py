@@ -691,7 +691,8 @@ class RootGenerator(object):
         return True, s_out
 
 def get_dockerfile_path(dockerfile_name):
-    return os.path.join(confile_file_folder, "Dockerfile.{0}".format(dockerfile_name))
+    # Should I use confile_file_folder?
+    return os.path.join(os.getcwd(), "Dockerfile.{0}".format(dockerfile_name))
 
 def get_user_help_env(root_generator, dockerfile_name):            
     env_vars_help = ""
