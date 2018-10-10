@@ -131,3 +131,21 @@ Stop and remove:
 * The "generate" methods are messy, require refactoring
 * Injection of comments is not consistent
 * Better management of layers and caching
+
+
+# Docker in Ubuntu
+
+
+Add the following line In the /etc/default/docker 
+```# Use DOCKER_OPTS to modify the daemon startup options.
+DOCKER_OPTS="--dns 172.20.15.1 --dns 8.8.8.8 --dns 8.8.4.4 -g /home/USERNAMEHERE/docker"
+```
+
+
+Create file /etc/docker/daemon.json
+```{
+	"dns": ["172.20.15.1", "8.8.8.8"],
+	"experimental": true,
+	"graph": "/home/USERNAME/docker"
+}```
+
