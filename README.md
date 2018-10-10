@@ -137,15 +137,18 @@ Stop and remove:
 
 
 Add the following line In the /etc/default/docker 
-```# Use DOCKER_OPTS to modify the daemon startup options.
+```
+# Use DOCKER_OPTS to modify the daemon startup options.
 DOCKER_OPTS="--dns 172.20.15.1 --dns 8.8.8.8 --dns 8.8.4.4 -g /home/USERNAMEHERE/docker"
 ```
 
 
 Create file /etc/docker/daemon.json
-```{
+```
+{
 	"dns": ["172.20.15.1", "8.8.8.8"],
 	"experimental": true,
 	"graph": "/home/USERNAME/docker"
-}```
+}
+```
 
